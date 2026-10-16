@@ -478,6 +478,7 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <span class="wordmark" id="todayStamp"></span>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -1392,6 +1393,8 @@
       window.addEventListener("resize", () => updateScreen());
 
       // 초기 실행
+
+      document.getElementById("todayStamp").textContent = new Date().toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
       updateScreen();
       desk.focus();
       startDemo(false);
