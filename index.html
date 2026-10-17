@@ -196,6 +196,12 @@
         text-shadow: 0 0 0.9px rgba(0, 0, 0, 0.85);
       }
 
+      .speech-preview {
+        color: #725c3d;
+        text-decoration: underline dotted rgba(137, 101, 52, 0.65);
+        text-underline-offset: 3px;
+      }
+
       #cursorAnchor {
         display: inline-block;
         width: 2px;
@@ -556,6 +562,38 @@
         outline-offset: 3px;
       }
 
+      .speech-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #625743;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: #272521;
+        color: #d6c7aa;
+        font: inherit;
+        cursor: pointer;
+        transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .speech-toggle-btn:hover,
+      .speech-toggle-btn[aria-pressed="true"] {
+        border-color: #c69e5b;
+        color: #f3c878;
+        box-shadow: 0 0 10px rgba(243, 200, 120, 0.16);
+      }
+      .speech-toggle-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .speech-toggle-btn:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
+      }
+      .speech-status {
+        color: #9e998e;
+        font-size: 11px;
+      }
+
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
@@ -693,6 +731,7 @@
         <div class="paper-sheet" id="paperSheet">
           <span class="ink-text" id="committedText"></span
           ><span class="composing-char" id="composingText"></span
+          ><span class="speech-preview" id="speechPreview"></span
           ><span id="cursorAnchor">&#8203;</span>
         </div>
 
@@ -808,6 +847,22 @@
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
+          <button type="button" class="speech-toggle-btn" id="speechToggleBtn" aria-label="음성 입력 시작" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="12" rx="3" />
+              <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21m-4 0h8" />
+            </svg>
+            <span id="speechToggleLabel">음성 입력</span>
+          </button>
+          <span class="speech-status" id="speechStatus" role="status" aria-live="polite">마이크를 눌러 말하세요</span>
+          <button type="button" class="speech-toggle-btn" id="readAloudBtn" aria-label="전체 글 읽기 시작" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M4 10v4h4l5 4V6l-5 4H4Z" stroke-linejoin="round" />
+              <path d="M17 9a5 5 0 0 1 0 6m2.5-8.5a8.5 8.5 0 0 1 0 11" stroke-linecap="round" />
+            </svg>
+            <span id="readAloudLabel">전체 읽기</span>
+          </button>
+          <span class="speech-status" id="readAloudStatus" role="status" aria-live="polite">작성한 글을 처음부터 읽습니다</span>
         </div>
 
         <!-- 3. 하단 안내 줄 -->
@@ -1309,6 +1364,13 @@
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
       const composingEl = document.getElementById("composingText");
+      const speechPreviewEl = document.getElementById("speechPreview");
+      const speechToggleBtn = document.getElementById("speechToggleBtn");
+      const speechToggleLabel = document.getElementById("speechToggleLabel");
+      const speechStatusEl = document.getElementById("speechStatus");
+      const readAloudBtn = document.getElementById("readAloudBtn");
+      const readAloudLabel = document.getElementById("readAloudLabel");
+      const readAloudStatusEl = document.getElementById("readAloudStatus");
       const cursorAnchor = document.getElementById("cursorAnchor");
       const paperSheet = document.getElementById("paperSheet");
       const paperViewport = document.getElementById("paperViewport");
@@ -1320,6 +1382,20 @@
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
+      const SpeechRecognitionAPI =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      let speechRecognition = null;
+      let isSpeechListening = false;
+      let speechInterimText = "";
+      let speechErrorMessage = "";
+      let isReadAloudActive = false;
+      let readAloudAfterSpeechStop = false;
+      let activeUtterance = null;
+      const speechSynthesisApi = window.speechSynthesis;
+      const SpeechSynthesisUtteranceApi = window.SpeechSynthesisUtterance;
+      const canReadAloud =
+        Boolean(speechSynthesisApi) &&
+        typeof SpeechSynthesisUtteranceApi === "function";
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1393,10 +1469,14 @@
         const comp = automata.getComposingChar();
         committedEl.textContent = committedStr;
         composingEl.textContent = comp;
+        speechPreviewEl.textContent = speechInterimText
+          ? ` ${speechInterimText}`
+          : "";
 
-        const totalLen = committedStr.length + (comp ? 1 : 0);
+        const visibleText = committedStr + comp + speechPreviewEl.textContent;
+        const totalLen = visibleText.length;
         charCountEl.textContent = totalLen.toLocaleString();
-        lineCountEl.textContent = (committedStr + comp).split("\n").length;
+        lineCountEl.textContent = visibleText.split("\n").length;
 
         requestAnimationFrame(() => {
           const viewportRect = paperViewport.getBoundingClientRect();
@@ -1438,6 +1518,241 @@
       // 웹폰트가 늦게 도착해도 인쇄선과 램프 위치를 다시 맞춘다.
       document.fonts.ready.then(() => updateScreen());
       document.fonts.addEventListener("loadingdone", () => updateScreen());
+
+      function updateSpeechButton() {
+        speechToggleBtn.setAttribute("aria-pressed", String(isSpeechListening));
+        speechToggleBtn.setAttribute(
+          "aria-label",
+          isSpeechListening ? "음성 입력 중지" : "음성 입력 시작",
+        );
+        speechToggleLabel.textContent = isSpeechListening
+          ? "듣는 중 · 끄기"
+          : "음성 입력";
+      }
+
+      function commitSpeechText(text) {
+        const transcript = text.trim();
+        if (!transcript) return;
+
+        const currentText = committedStr + automata.flush();
+        const needsSpace =
+          currentText.length > 0 &&
+          !/\s$/.test(currentText) &&
+          !/^[,.;:!?，。！？、]/u.test(transcript);
+        committedStr = `${currentText}${needsSpace ? " " : ""}${transcript}`;
+      }
+
+      function speechErrorText(error) {
+        if (error === "not-allowed" || error === "service-not-allowed") {
+          return "마이크 권한을 허용해야 음성 입력을 사용할 수 있어요.";
+        }
+        if (error === "no-speech") return "음성이 들리지 않았어요. 다시 눌러 말해 주세요.";
+        if (error === "network") return "음성 인식 연결에 실패했어요. 다시 시도해 주세요.";
+        return "음성 인식이 중단됐어요. 다시 눌러 시작해 주세요.";
+      }
+
+      if (!SpeechRecognitionAPI) {
+        speechToggleBtn.disabled = true;
+        speechToggleLabel.textContent = "음성 입력 미지원";
+        speechStatusEl.textContent =
+          "이 브라우저는 음성 인식을 지원하지 않습니다.";
+      } else {
+        speechRecognition = new SpeechRecognitionAPI();
+        speechRecognition.lang = "ko-KR";
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+
+        speechRecognition.onstart = () => {
+          isSpeechListening = true;
+          speechErrorMessage = "";
+          updateSpeechButton();
+          speechStatusEl.textContent =
+            "듣는 중입니다. 버튼을 다시 누르면 종료합니다.";
+        };
+
+        speechRecognition.onresult = (event) => {
+          const finalTranscripts = [];
+          let interimTranscript = "";
+          for (let index = event.resultIndex; index < event.results.length; index += 1) {
+            const transcript = event.results[index][0].transcript;
+            if (event.results[index].isFinal) {
+              finalTranscripts.push(transcript);
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          finalTranscripts.forEach(commitSpeechText);
+          speechInterimText = interimTranscript;
+          updateScreen();
+        };
+
+        speechRecognition.onerror = (event) => {
+          speechErrorMessage = speechErrorText(event.error);
+          isSpeechListening = false;
+          updateSpeechButton();
+          speechStatusEl.textContent = speechErrorMessage;
+        };
+
+        speechRecognition.onend = () => {
+          isSpeechListening = false;
+          if (speechInterimText) commitSpeechText(speechInterimText);
+          speechInterimText = "";
+          updateScreen();
+          updateSpeechButton();
+          speechStatusEl.textContent =
+            speechErrorMessage || "음성 입력을 종료했습니다.";
+          speechErrorMessage = "";
+          if (readAloudAfterSpeechStop) {
+            readAloudAfterSpeechStop = false;
+            startReadAloud();
+          } else {
+            desk.focus();
+          }
+        };
+
+        speechToggleBtn.addEventListener("click", () => {
+          if (isSpeechListening) {
+            speechStatusEl.textContent = "마지막 문장을 정리하고 있습니다…";
+            speechRecognition.stop();
+            return;
+          }
+
+          if (isReadAloudActive) {
+            stopReadAloud("음성 입력을 위해 읽기를 중지했습니다.");
+          }
+          stopDemo();
+          speechInterimText = "";
+          speechErrorMessage = "";
+          updateScreen();
+          speechStatusEl.textContent = "마이크 권한을 확인하고 있습니다…";
+          try {
+            speechRecognition.start();
+          } catch (error) {
+            isSpeechListening = false;
+            updateSpeechButton();
+            speechStatusEl.textContent =
+              error.name === "NotAllowedError"
+                ? "마이크 권한을 허용해 주세요."
+                : "음성 입력을 시작할 수 없습니다. 다시 시도해 주세요.";
+            desk.focus();
+          }
+        });
+      }
+
+      function updateReadAloudButton() {
+        readAloudBtn.setAttribute("aria-pressed", String(isReadAloudActive));
+        readAloudBtn.setAttribute(
+          "aria-label",
+          isReadAloudActive ? "전체 글 읽기 중지" : "전체 글 읽기 시작",
+        );
+        readAloudLabel.textContent = isReadAloudActive
+          ? "읽는 중 · 중지"
+          : "전체 읽기";
+      }
+
+      function stopReadAloud(message = "전체 읽기를 중지했습니다.") {
+        readAloudAfterSpeechStop = false;
+        if (!isReadAloudActive) return;
+        isReadAloudActive = false;
+        activeUtterance = null;
+        speechSynthesisApi.cancel();
+        updateReadAloudButton();
+        readAloudStatusEl.textContent = message;
+        desk.focus();
+      }
+
+      function startReadAloud() {
+        const text = `${committedStr}${automata.getComposingChar()}`.trim();
+        if (!text) {
+          isReadAloudActive = false;
+          updateReadAloudButton();
+          readAloudStatusEl.textContent = "읽을 내용이 없습니다.";
+          return;
+        }
+
+        const utterance = new SpeechSynthesisUtteranceApi(text);
+        utterance.lang = "ko-KR";
+        const koreanVoice = speechSynthesisApi
+          .getVoices()
+          .find((voice) => voice.lang.toLowerCase().startsWith("ko"));
+        if (koreanVoice) utterance.voice = koreanVoice;
+
+        activeUtterance = utterance;
+        isReadAloudActive = true;
+        updateReadAloudButton();
+        readAloudStatusEl.textContent = "작성된 전체 내용을 읽고 있습니다.";
+
+        utterance.onstart = () => {
+          if (activeUtterance === utterance) {
+            readAloudStatusEl.textContent = "작성된 전체 내용을 읽고 있습니다.";
+          }
+        };
+        utterance.onend = () => {
+          if (activeUtterance !== utterance) return;
+          activeUtterance = null;
+          isReadAloudActive = false;
+          updateReadAloudButton();
+          readAloudStatusEl.textContent = "전체 읽기를 마쳤습니다.";
+          desk.focus();
+        };
+        utterance.onerror = (event) => {
+          if (activeUtterance !== utterance) return;
+          activeUtterance = null;
+          isReadAloudActive = false;
+          updateReadAloudButton();
+          readAloudStatusEl.textContent =
+            event.error === "canceled"
+              ? "읽기를 중지했습니다."
+              : "음성 읽기에 실패했습니다. 다시 시도해 주세요.";
+          desk.focus();
+        };
+
+        try {
+          speechSynthesisApi.cancel();
+          speechSynthesisApi.speak(utterance);
+        } catch (error) {
+          activeUtterance = null;
+          isReadAloudActive = false;
+          updateReadAloudButton();
+          readAloudStatusEl.textContent =
+            "음성 읽기를 시작할 수 없습니다. 다시 시도해 주세요.";
+          desk.focus();
+        }
+      }
+
+      if (!canReadAloud) {
+        readAloudBtn.disabled = true;
+        readAloudLabel.textContent = "읽어주기 미지원";
+        readAloudStatusEl.textContent =
+          "이 브라우저는 음성 합성을 지원하지 않습니다.";
+      } else {
+        readAloudBtn.addEventListener("click", () => {
+          if (isReadAloudActive) {
+            stopReadAloud();
+            return;
+          }
+
+          stopDemo();
+          if (isSpeechListening && speechRecognition) {
+            isReadAloudActive = true;
+            readAloudAfterSpeechStop = true;
+            updateReadAloudButton();
+            readAloudStatusEl.textContent =
+              "받아쓰기를 마친 뒤 전체 읽기를 시작합니다.";
+            speechStatusEl.textContent = "읽기를 위해 받아쓰기를 종료합니다…";
+            speechRecognition.stop();
+            return;
+          }
+
+          startReadAloud();
+        });
+      }
+
+      function discardSpeechInput() {
+        if (!speechRecognition || !isSpeechListening) return;
+        speechInterimText = "";
+        speechRecognition.abort();
+      }
 
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
@@ -1615,7 +1930,12 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target === fontSelect ||
+          e.target === impactToggle ||
+          e.target === speechToggleBtn ||
+          e.target === readAloudBtn
+        ) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
@@ -1694,6 +2014,9 @@
 
       function startDemo(resetText = false) {
         if (resetText) {
+          discardSpeechInput();
+          speechInterimText = "";
+          stopReadAloud("리셋으로 읽기를 중지했습니다.");
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
