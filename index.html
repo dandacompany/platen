@@ -242,6 +242,30 @@
         color: rgba(240, 228, 205, 1);
       }
 
+      .timestamp-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border: 1px solid rgba(212, 162, 89, 0.5);
+        border-radius: 14px;
+        background: rgba(212, 162, 89, 0.2);
+        color: #ecc482;
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .timestamp-btn:hover {
+        background: rgba(212, 162, 89, 0.32);
+        color: #f0e4cd;
+      }
+
+      .timestamp-btn:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
+      }
+
       .wordmark {
         font-family: "Courier Prime", monospace;
         font-size: 13px;
@@ -680,6 +704,16 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <button
+              class="hud-btn timestamp-btn"
+              id="timestampBtn"
+              type="button"
+              title="지금 시각 도장 찍기"
+              aria-label="지금 시각 도장 찍기"
+            >
+              <span aria-hidden="true">⏱</span>
+              <span>시각 도장</span>
+            </button>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -1722,6 +1756,23 @@
         sound.init();
         stopDemo();
         startDemo(true);
+        desk.focus();
+      });
+
+      document.getElementById("timestampBtn").addEventListener("click", () => {
+        sound.init();
+        stopDemo();
+
+        const now = new Date();
+        const twoDigits = (value) => String(value).padStart(2, "0");
+        const timestamp = `${now.getFullYear()}.${twoDigits(now.getMonth() + 1)}.${twoDigits(now.getDate())} ${twoDigits(now.getHours())}:${twoDigits(now.getMinutes())}`;
+        const composing = automata.flush();
+        committedStr += composing;
+        if (committedStr && !committedStr.endsWith("\n")) {
+          committedStr += "\n";
+        }
+        committedStr += timestamp;
+        updateScreen();
         desk.focus();
       });
 
