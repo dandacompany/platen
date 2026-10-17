@@ -541,6 +541,16 @@
         font-size: 12px;
       }
 
+      .tts-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .tts-btn.speaking {
+        color: #f3c878;
+        border-color: #544936;
+      }
       .font-select {
         background: #272521;
         color: #ecc482;
@@ -808,6 +818,10 @@
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
+          <button type="button" id="ttsBtn" class="font-select tts-btn" title="종이의 글을 소리 내어 읽기">
+            <svg class="tts-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+            <span id="ttsLabel">소리 내어 읽기</span>
+          </button>
         </div>
 
         <!-- 3. 하단 안내 줄 -->
@@ -1691,6 +1705,56 @@
         if (demoTimer) clearTimeout(demoTimer);
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
+
+      // 소리 내어 읽기 (브라우저 내장 음성, 외부 전송 없음)
+      const ttsBtn = document.getElementById("ttsBtn");
+      const ttsLabel = document.getElementById("ttsLabel");
+      const ttsIcon = ttsBtn.querySelector(".tts-icon");
+      const ICON_SPEAKER =
+        '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>';
+      const ICON_STOP = '<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/>';
+      let isSpeaking = false;
+
+      function setTtsState(speaking) {
+        isSpeaking = speaking;
+        ttsBtn.classList.toggle("speaking", speaking);
+        ttsIcon.innerHTML = speaking ? ICON_STOP : ICON_SPEAKER;
+        ttsLabel.textContent = speaking ? "읽는 중 · 멈추기" : "소리 내어 읽기";
+      }
+      setTtsState(false);
+
+      function stopSpeaking() {
+        if ("speechSynthesis" in window) speechSynthesis.cancel();
+        setTtsState(false);
+      }
+
+      ttsBtn.addEventListener("click", () => {
+        if (!("speechSynthesis" in window)) {
+          ttsLabel.textContent = "이 브라우저는 읽기를 지원하지 않아요";
+          return;
+        }
+        if (isSpeaking) {
+          stopSpeaking();
+          desk.focus();
+          return;
+        }
+        const text = (committedStr + automata.getComposingChar()).trim();
+        if (!text) {
+          desk.focus();
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "ko-KR";
+        // 한국어 여성 음성(Mac의 Yuna)을 우선, 없으면 아무 한국어 음성
+        const koVoices = speechSynthesis.getVoices().filter((v) => v.lang.replace("_", "-").startsWith("ko"));
+        const voice = koVoices.find((v) => /yuna|유나/i.test(v.name)) || koVoices[0];
+        if (voice) u.voice = voice;
+        u.onend = u.onerror = () => setTtsState(false);
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+        setTtsState(true);
+        desk.focus();
+      });
 
       function startDemo(resetText = false) {
         if (resetText) {
