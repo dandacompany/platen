@@ -684,6 +684,18 @@
         color: #c9c3b6;
         background: #23221f;
       }
+      .quote-next-btn {
+        margin-left: 8px;
+        padding: 2px 7px;
+        border: 1px solid #78674c;
+        border-radius: 4px;
+        color: #d8c79f;
+        background: #29261f;
+        font: inherit;
+        cursor: pointer;
+      }
+      .quote-next-btn:hover,
+      .quote-next-btn:focus-visible { color: #fff0c5; border-color: #c5a466; }
     </style>
   </head>
   <body>
@@ -703,6 +715,7 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+            <button class="quote-next-btn" id="quoteNextBtn" type="button" hidden>↻ 다른 문장</button>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
@@ -1527,6 +1540,23 @@
         triggerTypeImpact();
       }
 
+      // 명언은 실제 키보드 자판 변환을 거치지 않고 원문 그대로 인쇄한다.
+      function handleLiteralChar(char, animate = true) {
+        if (char === "\n") {
+          playReturnBell();
+          if (animate) triggerStrike();
+        } else {
+          playKeyClick(char === " ");
+          if (animate) {
+            triggerStrike();
+            updateScreen();
+            triggerTypeImpact();
+          }
+        }
+        committedStr += char;
+        updateScreen();
+      }
+
       /* =========================================================================
    5. 나이트 램프(조명 초점 / 확산 / 거리) 효과
    ========================================================================= */
@@ -1719,23 +1749,53 @@
       let demoTimer = null;
       let demoIdx = 0;
       let isDemoRunning = true;
+      let isDemoComplete = false;
+      let demoText = "";
       const demoToggleBtn = document.getElementById("demoToggleBtn");
+      const quoteNextBtn = document.getElementById("quoteNextBtn");
+
+      async function pickQuote() {
+        const response = await fetch("./quotes.ko.json");
+        if (!response.ok) throw new Error("명언 데이터를 불러오지 못했습니다.");
+        const quotes = await response.json();
+        const previous = Number(localStorage.getItem("platen:lastQuoteIndex"));
+        const daily = new URLSearchParams(window.location.search).get("quote") === "daily";
+        let index;
+        if (daily) {
+          const now = new Date();
+          const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+            .map((part) => String(part).padStart(2, "0"))
+            .join("-");
+          let seed = 0;
+          for (const char of today) seed = (seed * 31 + char.charCodeAt(0)) >>> 0;
+          index = seed % quotes.length;
+        } else {
+          index = Math.floor(Math.random() * quotes.length);
+          if (quotes.length > 1 && index === previous) index = (index + 1) % quotes.length;
+        }
+        localStorage.setItem("platen:lastQuoteIndex", String(index));
+        const quote = quotes[index];
+        return `${quote.text}\n\n— ${quote.author}`;
+      }
+
+      function finishDemo() {
+        stopDemo();
+        isDemoComplete = true;
+        demoToggleBtn.textContent = "자동 타이핑 ▶";
+        quoteNextBtn.hidden = false;
+      }
 
       function stepDemo() {
         if (!isDemoRunning) return;
-        if (demoIdx >= DEMO_SEQUENCE.length) {
-          stopDemo();
-          demoToggleBtn.textContent = "다시 재생 ↻";
+        if (demoIdx >= demoText.length) {
+          finishDemo();
           return;
         }
-
-        const key = DEMO_SEQUENCE[demoIdx++];
-        handleKey(key);
-
+        const char = demoText[demoIdx++];
+        handleLiteralChar(char);
         let delay = 145 + Math.random() * 70;
-        if (key === "Enter") delay = 420;
-        else if (key === " ") delay = 200;
-
+        if (char === "\n") delay = 420;
+        else if (char === " ") delay = 200;
         demoTimer = setTimeout(stepDemo, delay);
       }
 
@@ -1746,29 +1806,41 @@
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
 
-      function startDemo(resetText = false) {
+      async function startDemo(resetText = false) {
         if (resetText) {
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
+          isDemoComplete = false;
+          quoteNextBtn.hidden = true;
           updateScreen();
         }
+        demoText = await pickQuote();
+        demoIdx = 0;
         isDemoRunning = true;
         demoToggleBtn.textContent = "자동 타이핑 중 ⏸";
         if (demoTimer) clearTimeout(demoTimer);
+        if (reducedMotionQuery.matches) {
+          for (const char of demoText) handleLiteralChar(char, false);
+          finishDemo();
+          return;
+        }
         demoTimer = setTimeout(stepDemo, 450);
       }
 
       demoToggleBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         sound.init();
-        if (isDemoRunning) {
-          stopDemo();
-        } else {
-          const needReset = demoIdx >= DEMO_SEQUENCE.length;
-          startDemo(needReset);
-        }
+        if (isDemoRunning) stopDemo();
+        else startDemo(false);
+        desk.focus();
+      });
+
+      quoteNextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sound.init();
+        startDemo(false);
         desk.focus();
       });
 
@@ -1794,7 +1866,9 @@
       // 초기 실행
       updateScreen();
       desk.focus();
-      startDemo(false);
+      startDemo(true).catch(() => {
+        demoToggleBtn.textContent = "명언을 불러오지 못했습니다";
+      });
     </script>
   </body>
 </html>
