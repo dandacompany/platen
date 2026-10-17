@@ -676,8 +676,17 @@
         <!-- 상단 HUD -->
         <div class="top-hud">
           <div class="hud-left">
-            <button class="hud-btn" id="clearBtn" title="처음 상태로 리셋">
+            <button type="button" class="hud-btn" id="clearBtn" title="처음 상태로 리셋">
               ←
+            </button>
+            <button
+              type="button"
+              class="hud-btn"
+              id="downloadBtn"
+              title="작성한 글 다운로드"
+              aria-label="작성한 글을 UTF-8 텍스트 파일로 다운로드"
+            >
+              ↓
             </button>
             <span class="wordmark">Platen</span>
           </div>
@@ -1722,6 +1731,23 @@
         sound.init();
         stopDemo();
         startDemo(true);
+        desk.focus();
+      });
+
+      document.getElementById("downloadBtn").addEventListener("click", () => {
+        stopDemo();
+        const text = committedStr + automata.getComposingChar();
+        const file = new Blob(["\uFEFF", text], {
+          type: "text/plain;charset=utf-8",
+        });
+        const url = URL.createObjectURL(file);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "platen.txt";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         desk.focus();
       });
 
