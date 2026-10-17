@@ -277,6 +277,19 @@
         letter-spacing: -0.02em;
       }
 
+      .writing-stats {
+        position: absolute;
+        left: 24px;
+        bottom: 48px;
+        z-index: 10;
+        padding: 5px 9px;
+        border-radius: 4px;
+        background: rgba(30, 26, 21, 0.68);
+        color: #e6dcc7;
+        font-size: 12px;
+        letter-spacing: -0.01em;
+      }
+
       /* 타자기 T자 활자 가이드 */
       .type-guide-container {
         position: absolute;
@@ -696,6 +709,12 @@
           ><span id="cursorAnchor">&#8203;</span>
         </div>
 
+        <div class="writing-stats" aria-label="작성 통계">
+          <span>단어 <span id="wordCount">0</span></span>
+          <span aria-hidden="true"> · </span>
+          <span>읽기 <span id="readingTime">0</span>분</span>
+        </div>
+
         <!-- 나이트 램프 빛 & 그림자 레이어 -->
         <div class="lighting-layer" id="lightingLayer"></div>
 
@@ -1056,6 +1075,16 @@
         return String.fromCharCode(0xac00 + (cIdx * 21 + vIdx) * 28 + tIdx);
       }
 
+      function getWritingStats(text) {
+        const trimmedText = text.trim();
+        return {
+          wordCount: trimmedText ? trimmedText.split(/\s+/u).length : 0,
+          readingMinutes: trimmedText
+            ? Math.ceil(Array.from(text).length / 500)
+            : 0,
+        };
+      }
+
       class HangulAutomata {
         constructor() {
           this.reset();
@@ -1317,6 +1346,8 @@
       const impactToggle = document.getElementById("impactToggle");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const wordCountEl = document.getElementById("wordCount");
+      const readingTimeEl = document.getElementById("readingTime");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
@@ -1397,6 +1428,9 @@
         const totalLen = committedStr.length + (comp ? 1 : 0);
         charCountEl.textContent = totalLen.toLocaleString();
         lineCountEl.textContent = (committedStr + comp).split("\n").length;
+        const writingStats = getWritingStats(committedStr + comp);
+        wordCountEl.textContent = writingStats.wordCount.toLocaleString();
+        readingTimeEl.textContent = writingStats.readingMinutes.toLocaleString();
 
         requestAnimationFrame(() => {
           const viewportRect = paperViewport.getBoundingClientRect();
