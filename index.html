@@ -188,6 +188,18 @@
         word-break: break-all;
       }
 
+      /* 줄 공책: 한 줄 높이마다 가로줄을 그려 글자가 줄 위에 앉게 한다.
+         --paper-line 은 잉크병 글자 크기와 함께 바뀐다. */
+      .paper-sheet.notebook {
+        background-image: linear-gradient(
+          to bottom,
+          transparent calc(100% - 1px),
+          rgba(74, 108, 150, 0.5) calc(100% - 1px)
+        );
+        background-size: 100% var(--paper-line, 30px);
+        background-position: 0 48px;
+      }
+
       .ink-text {
         text-shadow: 0 0 0.6px rgba(25, 20, 15, 0.55);
       }
@@ -562,7 +574,47 @@
         right: 22px;
         bottom: calc(100% + 18px);
         z-index: 12;
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
       }
+      /* 종이 바꾸기: 누를 때마다 민무늬 ↔ 줄 공책 */
+      .paper-toggle-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 64px;
+        padding: 4px;
+        border: 0;
+        background: transparent;
+        color: #dfcfad;
+        cursor: pointer;
+        font: 10px "Gowun Batang", serif;
+        letter-spacing: 0.06em;
+      }
+      .paper-swatch {
+        width: 38px;
+        height: 48px;
+        border: 1px solid #b3a17e;
+        border-radius: 2px;
+        background-color: #d6c6a4;
+        box-shadow: 2px 4px 7px #0007;
+        transition: transform 0.18s ease;
+      }
+      .paper-toggle-btn[aria-pressed="true"] .paper-swatch {
+        background-image: linear-gradient(
+          to bottom,
+          transparent calc(100% - 1px),
+          rgba(74, 108, 150, 0.7) calc(100% - 1px)
+        );
+        background-size: 100% 7px;
+        background-position: 0 6px;
+      }
+      .paper-toggle-btn:hover .paper-swatch {
+        transform: translateY(-3px) rotate(3deg);
+      }
+      .paper-toggle-btn:focus-visible { outline: 2px solid #e1bd77; outline-offset: 4px; }
       .ink-bottle-btn {
         display: flex;
         flex-direction: column;
@@ -641,6 +693,7 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .ink-bottle { transition: none; }
+        .paper-swatch { transition: none; }
       }
 
       /* ================= 3. 하단 안내 줄 ================= */
@@ -710,6 +763,11 @@
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
       <div class="lamp-assembly" id="lampAssembly">
         <div class="ink-station" id="inkStation">
+          <button type="button" class="paper-toggle-btn" id="paperToggleBtn"
+            aria-label="종이 바꾸기: 줄 공책" aria-pressed="false">
+            <span class="paper-swatch" aria-hidden="true"></span>
+            <span aria-hidden="true">줄 공책</span>
+          </button>
           <button type="button" class="ink-bottle-btn" id="inkBottleBtn"
             aria-label="잉크병: 글자 크기 조절" aria-expanded="false" aria-controls="inkSizePanel">
             <span class="ink-bottle" aria-hidden="true"><span class="ink-bottle-label">INK</span></span>
@@ -1563,6 +1621,7 @@
         const size = Number(inkSizeSlider.value);
         paperSheet.style.fontSize = `${size}px`;
         paperSheet.style.lineHeight = `${size * 5 / 3}px`;
+        paperSheet.style.setProperty("--paper-line", `${size * 5 / 3}px`);
         cursorAnchor.style.height = `${size + 2}px`;
         inkSizeValue.value = `${size}px`;
         inkSizeSlider.setAttribute("aria-valuetext", `${size}픽셀`);
@@ -1570,6 +1629,15 @@
       });
       document.addEventListener("click", (e) => {
         if (!inkStation.contains(e.target)) setInkPanelOpen(false);
+      });
+
+      // 종이 바꾸기: 겉모습만 바꾸고 글 내용과 조합 상태는 건드리지 않는다.
+      const paperToggleBtn = document.getElementById("paperToggleBtn");
+      paperToggleBtn.addEventListener("click", () => {
+        const notebook = paperSheet.classList.toggle("notebook");
+        paperToggleBtn.setAttribute("aria-pressed", String(notebook));
+        setInkPanelOpen(false);
+        desk.focus();
       });
       inkStation.addEventListener("keydown", (e) => {
         // 스페이스/Enter/방향키를 종이 입력 대신 네이티브 컨트롤에 전달한다.
