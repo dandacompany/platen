@@ -153,6 +153,20 @@
         color: rgba(240, 228, 205, 1);
       }
 
+      .sound-toggle-btn {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .sound-toggle-btn[aria-pressed="false"] {
+        color: rgba(175, 166, 148, 0.45);
+      }
+
+      .hud-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
       .wordmark {
         font-family: "Courier Prime", monospace;
         font-size: 13px;
@@ -478,6 +492,20 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <button
+              type="button"
+              class="hud-btn sound-toggle-btn"
+              id="soundToggleBtn"
+              aria-pressed="true"
+              title="타자 소리 켜기/끄기"
+            >타자 소리 켜짐</button>
+            <button
+              type="button"
+              class="hud-btn sound-toggle-btn"
+              id="readAloudBtn"
+              aria-pressed="false"
+              title="현재 메모를 한국어로 읽기"
+            >읽어 주기</button>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -602,9 +630,11 @@
       class TypewriterAudio {
         constructor() {
           this.ctx = null;
+          this.enabled = true;
         }
 
         init() {
+          if (!this.enabled) return;
           try {
             if (!this.ctx) {
               const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -617,6 +647,7 @@
         }
 
         playKeyClick(isSpace = false) {
+          if (!this.enabled) return;
           try {
             this.init();
             if (!this.ctx) return;
@@ -674,6 +705,7 @@
         }
 
         playReturnBell() {
+          if (!this.enabled) return;
           try {
             this.init();
             if (!this.ctx) return;
@@ -959,19 +991,19 @@
       /* =========================================================================
    3. 초기 텍스트 & 자동 타이핑 데모 시나리오
    ========================================================================= */
-      const INITIAL_TEXT = `10월 13일, 밤 11시 48분.
-집이 조용하다. 램프와 나,
-그리고 식어 가는 차 한 잔뿐.
+      const INITIAL_TEXT = `밤의 메모 — 햄릿의 말들
+셰익스피어 《햄릿》에서, 직접 옮김.
 
-오늘 배운 세 가지:
-1. 작은 걸음도 쌓인다.
-2. 짐작하지 말고 묻기.
-3. 쉬는 것도 일이다.
+1. 존재할 것인가, 존재하지 않을 것인가.
+   그것이 문제다.
+   — 3막 1장
 
-내일 할 일:
-- 엄마한테 전화
-- 파란 자전거 고치기
-- 책 열 쪽`;
+2. 본래 좋거나 나쁜 것은 없다.
+   생각이 그렇게 만들 뿐이다.
+   — 2막 2장
+
+3. 준비되어 있다는 것, 그것이 전부다.
+   — 5막 2장`;
 
       // 자모 하나가 키 하나다. 'Enter' 는 줄바꿈, ' ' 는 띄어쓰기.
       const DEMO_SEQUENCE = [
@@ -1086,6 +1118,78 @@
       const typeGuide = document.getElementById("typeGuide");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const soundToggleBtn = document.getElementById("soundToggleBtn");
+
+      soundToggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sound.enabled = !sound.enabled;
+        soundToggleBtn.setAttribute("aria-pressed", String(sound.enabled));
+        soundToggleBtn.textContent = sound.enabled
+          ? "타자 소리 켜짐"
+          : "타자 소리 꺼짐";
+        desk.focus();
+      });
+
+      // 브라우저 내장 음성으로 버튼을 누른 시점의 메모를 읽는다.
+      const readAloudBtn = document.getElementById("readAloudBtn");
+      const speech = window.speechSynthesis;
+      let readingUtterance = null;
+
+      function stopReading() {
+        if (readAloudBtn.disabled) return;
+        const wasReading = readingUtterance !== null;
+        readingUtterance = null;
+        readAloudBtn.setAttribute("aria-pressed", "false");
+        readAloudBtn.textContent = "읽어 주기";
+        readAloudBtn.title = "현재 메모를 한국어로 읽기";
+        if (wasReading) speech.cancel();
+      }
+
+      if (!speech || !window.SpeechSynthesisUtterance) {
+        readAloudBtn.disabled = true;
+        readAloudBtn.textContent = "낭독 미지원";
+        readAloudBtn.title = "이 브라우저는 음성 낭독을 지원하지 않습니다";
+      } else {
+        // 음성 목록은 늦게 준비될 수 있어 클릭할 때 다시 조회한다.
+        speech.getVoices();
+        readAloudBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          desk.focus();
+          if (readingUtterance) {
+            stopReading();
+            return;
+          }
+          const text = committedStr + automata.getComposingChar();
+          if (!text.trim()) return;
+          stopDemo();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = "ko-KR";
+          const voices = speech.getVoices().filter((voice) =>
+            voice.lang.toLowerCase().startsWith("ko"),
+          );
+          const voice = voices.find((voice) => voice.localService) || voices[0];
+          if (voice) utterance.voice = voice;
+          utterance.onend = () => {
+            if (readingUtterance === utterance) stopReading();
+          };
+          utterance.onerror = () => {
+            if (readingUtterance !== utterance) return;
+            stopReading();
+            readAloudBtn.textContent = "다시 읽기";
+            readAloudBtn.title = "낭독하지 못했습니다. 한국어 음성 설정을 확인해 주세요";
+          };
+          readingUtterance = utterance;
+          readAloudBtn.setAttribute("aria-pressed", "true");
+          readAloudBtn.textContent = "낭독 멈추기";
+          readAloudBtn.title = "음성 낭독 멈추기";
+          try {
+            speech.speak(utterance);
+          } catch (error) {
+            utterance.onerror();
+          }
+        });
+        window.addEventListener("pagehide", stopReading);
+      }
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1274,6 +1378,11 @@
 
       window.addEventListener("keydown", (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+        // 소리·낭독 버튼의 Enter·Space는 기본 버튼 동작에 맡긴다.
+        if (
+          (e.target === soundToggleBtn || e.target === readAloudBtn) &&
+          (e.key === "Enter" || e.key === " ")
+        ) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
@@ -1375,6 +1484,7 @@
       });
 
       document.getElementById("clearBtn").addEventListener("click", () => {
+        stopReading();
         sound.init();
         stopDemo();
         startDemo(true);
