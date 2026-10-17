@@ -242,6 +242,16 @@
         color: rgba(240, 228, 205, 1);
       }
 
+      .copy-btn {
+        font-family: "Courier Prime", monospace;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+      }
+
+      .copy-btn.copied {
+        color: #e8d7a8;
+      }
+
       .wordmark {
         font-family: "Courier Prime", monospace;
         font-size: 13px;
@@ -678,6 +688,15 @@
           <div class="hud-left">
             <button class="hud-btn" id="clearBtn" title="처음 상태로 리셋">
               ←
+            </button>
+            <button
+              class="hud-btn copy-btn"
+              id="copyBtn"
+              type="button"
+              title="작성한 메모 복사"
+              aria-label="작성한 메모 복사"
+            >
+              ⧉ 복사
             </button>
             <span class="wordmark">Platen</span>
           </div>
@@ -1317,6 +1336,7 @@
       const impactToggle = document.getElementById("impactToggle");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const copyBtn = document.getElementById("copyBtn");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
@@ -1715,6 +1735,33 @@
           const needReset = demoIdx >= DEMO_SEQUENCE.length;
           startDemo(needReset);
         }
+        desk.focus();
+      });
+
+      let copyFeedbackTimer = null;
+      copyBtn.addEventListener("click", async () => {
+        const text = committedStr + automata.getComposingChar();
+
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          textarea.remove();
+        }
+
+        if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+        copyBtn.textContent = "✓ 복사됨!";
+        copyBtn.classList.add("copied");
+        copyFeedbackTimer = setTimeout(() => {
+          copyBtn.textContent = "⧉ 복사";
+          copyBtn.classList.remove("copied");
+        }, 1600);
         desk.focus();
       });
 
