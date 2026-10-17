@@ -196,6 +196,30 @@
         text-shadow: 0 0 0.9px rgba(0, 0, 0, 0.85);
       }
 
+      /* 새로 찍힌 글자만 잠시 번졌다가 잉크가 마르듯 선명해진다. */
+      .fresh-ink {
+        animation: freshInkAppear 700ms ease-out forwards;
+      }
+
+      @keyframes freshInkAppear {
+        0% {
+          filter: blur(1.2px);
+          opacity: 0.5;
+          text-shadow: 0 0 3px rgba(30, 26, 21, 0.5);
+        }
+        100% {
+          filter: blur(0);
+          opacity: 1;
+          text-shadow: 0 0 0.6px rgba(25, 20, 15, 0.55);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .fresh-ink {
+          animation: none;
+        }
+      }
+
       #cursorAnchor {
         display: inline-block;
         width: 2px;
@@ -692,6 +716,7 @@
         <!-- 타자기 종이 시트 -->
         <div class="paper-sheet" id="paperSheet">
           <span class="ink-text" id="committedText"></span
+          ><span class="ink-text" id="freshInkText"></span
           ><span class="composing-char" id="composingText"></span
           ><span id="cursorAnchor">&#8203;</span>
         </div>
@@ -1305,9 +1330,11 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      const freshInkRuns = [];
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
+      const freshInkEl = document.getElementById("freshInkText");
       const composingEl = document.getElementById("composingText");
       const cursorAnchor = document.getElementById("cursorAnchor");
       const paperSheet = document.getElementById("paperSheet");
@@ -1320,6 +1347,35 @@
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
+
+      function showFreshInk(committedLength = 0) {
+        if (committedLength > 0) {
+          const text = committedStr.slice(-committedLength);
+          const element = document.createElement("span");
+          const run = { length: text.length, element, settled: false, timer: null };
+
+          element.className = "fresh-ink";
+          element.textContent = text;
+          freshInkEl.appendChild(element);
+          freshInkRuns.push(run);
+
+          run.timer = setTimeout(() => {
+            run.settled = true;
+            while (freshInkRuns[0]?.settled) {
+              freshInkRuns.shift().element.remove();
+            }
+            updateScreen();
+          }, 700);
+        }
+
+        updateScreen();
+
+        if (composingEl.textContent) {
+          composingEl.classList.remove("fresh-ink");
+          void composingEl.offsetWidth;
+          composingEl.classList.add("fresh-ink");
+        }
+      }
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1391,7 +1447,12 @@
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        const freshLength = freshInkRuns.reduce(
+          (total, run) => total + run.length,
+          0,
+        );
+        const stableEnd = Math.max(0, committedStr.length - freshLength);
+        committedEl.textContent = committedStr.slice(0, stableEnd);
         composingEl.textContent = comp;
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
@@ -1444,6 +1505,10 @@
         if (k === "BACK") {
           sound.playKeyClick(false);
           triggerStrike();
+          freshInkRuns.splice(0).forEach((run) => {
+            clearTimeout(run.timer);
+            run.element.remove();
+          });
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
           }
@@ -1454,16 +1519,18 @@
         if (k === " ") {
           sound.playKeyClick(true);
           triggerStrike();
-          committedStr += automata.flush() + " ";
-          updateScreen();
+          const appendedText = automata.flush() + " ";
+          committedStr += appendedText;
+          showFreshInk(appendedText.length);
           return;
         }
 
         if (k === "Enter") {
           sound.playReturnBell();
           triggerStrike();
-          committedStr += automata.flush() + "\n";
-          updateScreen();
+          const appendedText = automata.flush() + "\n";
+          committedStr += appendedText;
+          showFreshInk(appendedText.length);
           return;
         }
 
@@ -1474,7 +1541,7 @@
         if (res.committed) {
           committedStr += res.committed;
         }
-        updateScreen();
+        showFreshInk(res.committed.length);
         triggerTypeImpact();
       }
 
@@ -1695,6 +1762,11 @@
       function startDemo(resetText = false) {
         if (resetText) {
           clearTypeImpacts();
+          freshInkRuns.splice(0).forEach((run) => {
+            clearTimeout(run.timer);
+            run.element.remove();
+          });
+          composingEl.classList.remove("fresh-ink");
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
