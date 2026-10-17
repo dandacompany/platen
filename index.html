@@ -19,6 +19,67 @@
         --lamp-x: 200px;
       }
 
+      :root[data-theme="light"] body {
+        background-color: #e8e4dc;
+      }
+      :root[data-theme="light"] .desk {
+        background-color: #f7f5ef;
+        box-shadow: 0 25px 70px rgba(48, 42, 31, 0.2);
+      }
+      :root[data-theme="light"] .paper-viewport {
+        background-color: #fffdf7;
+      }
+      :root[data-theme="light"] .top-hud .hud-btn,
+      :root[data-theme="light"] .wordmark,
+      :root[data-theme="light"] .char-counter {
+        color: #625d52;
+      }
+      :root[data-theme="light"] .theme-toggle {
+        color: #504a3f;
+        border-color: #c9c2b4;
+      }
+      :root[data-theme="light"] .lamp-assembly {
+        background: linear-gradient(180deg, #e6e0d4 0%, #d8d1c4 100%);
+        border-top-color: #c7bfae;
+      }
+      :root[data-theme="light"] .lamp-rail {
+        background: #c9c2b5;
+        border-color: #b8b0a2;
+        box-shadow: inset 0 3px 6px rgba(70, 62, 48, 0.18);
+      }
+      :root[data-theme="light"] .lamp-carriage {
+        background: linear-gradient(180deg, #f5f0e5 0%, #ddd5c6 100%);
+        border-color: #b7ad9b;
+      }
+      :root[data-theme="light"] .control-label,
+      :root[data-theme="light"] .font-controls,
+      :root[data-theme="light"] .footer-hint {
+        color: #585347;
+      }
+      :root[data-theme="light"] .font-select {
+        background: #fffdf7;
+        color: #5b492c;
+        border-color: #b9aa8e;
+      }
+      :root[data-theme="light"] .sun-toggle-btn {
+        background: #f8f3e8;
+        color: #665a43;
+        border-color: #bdb29d;
+      }
+      :root[data-theme="light"] .ruler-input::-webkit-slider-thumb {
+        background: #665c4a;
+        box-shadow: 0 0 5px rgba(75, 65, 48, 0.35);
+      }
+      :root[data-theme="light"] .ruler-input::-moz-range-thumb {
+        background: #665c4a;
+        box-shadow: 0 0 5px rgba(75, 65, 48, 0.35);
+      }
+      :root[data-theme="light"] .footer-hint kbd {
+        color: #504a3f;
+        background: #f4f0e7;
+        border-color: #c9c2b4;
+      }
+
       * {
         box-sizing: border-box;
         user-select: none;
@@ -227,6 +288,21 @@
         display: flex;
         align-items: center;
         gap: 10px;
+      }
+
+      .theme-toggle {
+        border: 1px solid #49463e;
+        border-radius: 14px;
+        padding: 5px 10px;
+        background: transparent;
+        color: #c9c3b6;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .theme-toggle:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
       }
 
       .hud-btn {
@@ -680,6 +756,15 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <button
+              class="theme-toggle"
+              id="themeToggle"
+              type="button"
+              aria-label="화이트 모드로 전환"
+              aria-pressed="false"
+            >
+              ☀ 화이트 모드
+            </button>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -1307,6 +1392,19 @@
       let committedStr = INITIAL_TEXT;
 
       const desk = document.getElementById("desk");
+      const themeToggle = document.getElementById("themeToggle");
+      const savedTheme = localStorage.getItem("platen-theme");
+
+      function setTheme(theme) {
+        const isLight = theme === "light";
+        document.documentElement.dataset.theme = isLight ? "light" : "dark";
+        themeToggle.textContent = isLight ? "☾ 다크 모드" : "☀ 화이트 모드";
+        themeToggle.setAttribute("aria-label", `${isLight ? "다크" : "화이트"} 모드로 전환`);
+        themeToggle.setAttribute("aria-pressed", String(isLight));
+        localStorage.setItem("platen-theme", isLight ? "light" : "dark");
+        updateLightingOverlay();
+      }
+
       const committedEl = document.getElementById("committedText");
       const composingEl = document.getElementById("composingText");
       const cursorAnchor = document.getElementById("cursorAnchor");
@@ -1493,6 +1591,11 @@
       let isLampOn = true;
 
       function updateLightingOverlay(lampX, viewportH) {
+        if (document.documentElement.dataset.theme === "light") {
+          lightingLayer.style.background = "none";
+          return;
+        }
+
         const x =
           lampX ||
           parseFloat(
@@ -1530,6 +1633,13 @@
     )
   `;
       }
+
+      setTheme(savedTheme === "light" ? "light" : "dark");
+      themeToggle.addEventListener("click", () => {
+        setTheme(
+          document.documentElement.dataset.theme === "light" ? "dark" : "light",
+        );
+      });
 
       [focusSlider, spreadSlider, distSlider].forEach((slider) => {
         slider.addEventListener("input", () => updateLightingOverlay());
