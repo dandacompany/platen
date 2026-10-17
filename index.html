@@ -188,6 +188,73 @@
         word-break: break-all;
       }
 
+      /* 빈 종이에서만 보이는 글감 추천 버튼. 종이 본문과 분리해 글자 수에 포함하지 않는다. */
+      .topic-recommendation {
+        position: absolute;
+        top: 70px;
+        right: 24px;
+        pointer-events: none;
+        z-index: 7;
+      }
+
+      .topic-recommendation-btn {
+        padding: 10px 16px;
+        border: 1px solid rgba(80, 67, 48, 0.7);
+        border-radius: 5px;
+        background: rgba(237, 229, 210, 0.88);
+        color: #4b3f2f;
+        box-shadow: 0 3px 10px rgba(48, 38, 27, 0.2);
+        cursor: pointer;
+        font: 700 14px "Gowun Batang", "Nanum Myeongjo", serif;
+        letter-spacing: 0.04em;
+        pointer-events: auto;
+      }
+
+      .topic-recommendation-btn:hover,
+      .topic-recommendation-btn:focus-visible {
+        background: #fff8e9;
+        outline: 2px solid #8b7351;
+        outline-offset: 3px;
+      }
+
+      .topic-bubble {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        width: 250px;
+        padding: 11px 13px;
+        border: 1px solid rgba(80, 67, 48, 0.6);
+        border-radius: 7px;
+        background: rgba(255, 248, 233, 0.96);
+        color: #4b3f2f;
+        box-shadow: 0 4px 12px rgba(48, 38, 27, 0.18);
+        font: 13px/1.55 "Gowun Batang", "Nanum Myeongjo", serif;
+        letter-spacing: -0.01em;
+      }
+
+      .topic-bubble::before {
+        content: "";
+        position: absolute;
+        top: -7px;
+        right: 23px;
+        width: 12px;
+        height: 12px;
+        border-top: 1px solid rgba(80, 67, 48, 0.6);
+        border-left: 1px solid rgba(80, 67, 48, 0.6);
+        background: #fff8e9;
+        transform: rotate(45deg);
+      }
+
+      @media (max-width: 480px) {
+        .topic-recommendation {
+          right: 14px;
+        }
+
+        .topic-bubble {
+          width: min(250px, calc(100vw - 28px));
+        }
+      }
+
       .ink-text {
         text-shadow: 0 0 0.6px rgba(25, 20, 15, 0.55);
       }
@@ -695,6 +762,14 @@
           ><span class="composing-char" id="composingText"></span
           ><span id="cursorAnchor">&#8203;</span>
         </div>
+        <div class="topic-recommendation">
+          <button type="button" class="topic-recommendation-btn" id="topicRecommendBtn">
+            글감 추천
+          </button>
+          <div class="topic-bubble" id="topicBubble" role="status" aria-live="polite" hidden>
+            <span id="topicBubbleText"></span>
+          </div>
+        </div>
 
         <!-- 나이트 램프 빛 & 그림자 레이어 -->
         <div class="lighting-layer" id="lightingLayer"></div>
@@ -812,7 +887,7 @@
 
         <!-- 3. 하단 안내 줄 -->
         <div class="footer-hint">
-          <span
+          <span id="footerGuideText"
             >키보드로 바로 타이핑하세요. 한/영 상태와 상관없이 자판 위치대로
             한글이 찍힙니다.</span
           >
@@ -1317,6 +1392,9 @@
       const impactToggle = document.getElementById("impactToggle");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const topicRecommendBtn = document.getElementById("topicRecommendBtn");
+      const topicBubble = document.getElementById("topicBubble");
+      const topicBubbleText = document.getElementById("topicBubbleText");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
@@ -1429,6 +1507,20 @@
           updateLightingOverlay(clampedX, viewportRect.height);
         });
       }
+
+      const TOPIC_PROMPTS = [
+        "글감: 오늘 가장 오래 기억에 남은 장면을 적어 보세요.",
+        "글감: 창밖에서 들린 소리 하나를 따라 이야기를 시작해 보세요.",
+        "글감: 지금 마시고 싶은 차 한 잔을 묘사해 보세요.",
+      ];
+
+      topicRecommendBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const prompt = TOPIC_PROMPTS[Math.floor(Math.random() * TOPIC_PROMPTS.length)];
+        topicBubbleText.textContent = prompt;
+        topicBubble.hidden = false;
+        desk.focus();
+      });
 
       const fontSelect = document.getElementById("fontSelect");
       fontSelect.addEventListener("change", () => {
