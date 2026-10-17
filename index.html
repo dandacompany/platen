@@ -90,6 +90,18 @@
         transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
       }
 
+      /* 마우스 손글씨는 종이 움직임을 따라가는 투명한 입력 층에 그린다 */
+      .signature-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 6;
+        width: 100%;
+        pointer-events: auto;
+        touch-action: none;
+        cursor: crosshair;
+      }
+
       /* 링과 입자를 담는 기준점. 입자가 링의 크기·투명도 변화를 물려받지 않게 분리한다 */
       .type-impact {
         position: absolute;
@@ -672,6 +684,7 @@
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
         <div class="type-impact-layer" id="typeImpactLayer" aria-hidden="true"></div>
+        <canvas class="signature-canvas" id="signatureCanvas" aria-label="종이 위에 마우스로 손글씨 서명"></canvas>
 
         <!-- 상단 HUD -->
         <div class="top-hud">
@@ -1314,6 +1327,80 @@
       const paperViewport = document.getElementById("paperViewport");
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
+      const signatureCanvas = document.getElementById("signatureCanvas");
+      const signatureContext = signatureCanvas.getContext("2d");
+      const signatureStrokes = [];
+      let currentSignatureStroke = null;
+      let isDrawingSignature = false;
+
+      function drawSignatureStroke(stroke) {
+        if (!stroke.length) return;
+        signatureContext.beginPath();
+        signatureContext.moveTo(stroke[0].x, stroke[0].y);
+        for (let index = 1; index < stroke.length; index += 1) {
+          signatureContext.lineTo(stroke[index].x, stroke[index].y);
+        }
+        signatureContext.stroke();
+      }
+
+      function resizeSignatureCanvas() {
+        const viewportRect = paperViewport.getBoundingClientRect();
+        const cssWidth = viewportRect.width;
+        const cssHeight = Math.max(paperViewport.clientHeight, paperSheet.offsetHeight);
+        const pixelRatio = window.devicePixelRatio || 1;
+        const pixelWidth = Math.round(cssWidth * pixelRatio);
+        const pixelHeight = Math.round(cssHeight * pixelRatio);
+        signatureCanvas.style.height = `${cssHeight}px`;
+
+        if (signatureCanvas.width === pixelWidth && signatureCanvas.height === pixelHeight) return;
+        signatureCanvas.width = pixelWidth;
+        signatureCanvas.height = pixelHeight;
+        signatureContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        signatureContext.strokeStyle = "#1e1a15";
+        signatureContext.lineWidth = 2.5;
+        signatureContext.lineCap = "round";
+        signatureContext.lineJoin = "round";
+        signatureStrokes.forEach(drawSignatureStroke);
+        if (currentSignatureStroke) drawSignatureStroke(currentSignatureStroke);
+      }
+
+      function clearSignature() {
+        signatureStrokes.length = 0;
+        currentSignatureStroke = null;
+        signatureContext.clearRect(0, 0, signatureCanvas.clientWidth, signatureCanvas.clientHeight);
+      }
+
+      function signaturePoint(event) {
+        const rect = signatureCanvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      signatureCanvas.addEventListener("pointerdown", (event) => {
+        if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+        isDrawingSignature = true;
+        currentSignatureStroke = [signaturePoint(event)];
+        signatureCanvas.setPointerCapture(event.pointerId);
+        drawSignatureStroke(currentSignatureStroke);
+        event.preventDefault();
+      });
+
+      signatureCanvas.addEventListener("pointermove", (event) => {
+        if (!isDrawingSignature || !currentSignatureStroke) return;
+        currentSignatureStroke.push(signaturePoint(event));
+        drawSignatureStroke(currentSignatureStroke);
+        event.preventDefault();
+      });
+
+      function finishSignatureStroke() {
+        if (!isDrawingSignature) return;
+        isDrawingSignature = false;
+        if (currentSignatureStroke?.length) signatureStrokes.push(currentSignatureStroke);
+        currentSignatureStroke = null;
+      }
+
+      signatureCanvas.addEventListener("pointerup", finishSignatureStroke);
+      signatureCanvas.addEventListener("pointercancel", finishSignatureStroke);
+      signatureCanvas.addEventListener("lostpointercapture", finishSignatureStroke);
       const impactToggle = document.getElementById("impactToggle");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
@@ -1425,6 +1512,8 @@
           const translateY = targetPrintLineY - anchorOffsetTop;
           paperSheet.style.transform = `translateY(${translateY}px)`;
           typeImpactLayer.style.transform = paperSheet.style.transform;
+          signatureCanvas.style.transform = paperSheet.style.transform;
+          resizeSignatureCanvas();
 
           updateLightingOverlay(clampedX, viewportRect.height);
         });
@@ -1695,6 +1784,7 @@
       function startDemo(resetText = false) {
         if (resetText) {
           clearTypeImpacts();
+          clearSignature();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
