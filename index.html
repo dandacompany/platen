@@ -81,6 +81,56 @@
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.55'/%3E%3C/svg%3E");
       }
 
+      /* 오른쪽 상단의 종이꽃 장식 */
+      .flower-corner {
+        position: absolute;
+        top: 34px;
+        right: -24px;
+        width: 132px;
+        height: 132px;
+        pointer-events: none;
+        z-index: 5;
+        filter: drop-shadow(0 5px 5px rgba(63, 37, 27, 0.2));
+        transform: rotate(14deg);
+      }
+
+      .flower-petal {
+        position: absolute;
+        top: 35px;
+        left: 52px;
+        width: 34px;
+        height: 68px;
+        border-radius: 52% 52% 46% 46%;
+        background: linear-gradient(90deg, #dc837c, #f3b4a3 52%, #c96768);
+        border: 1px solid rgba(117, 62, 63, 0.24);
+        box-shadow: inset 4px 0 8px rgba(255, 237, 218, 0.38);
+        transform-origin: 50% 96%;
+      }
+
+      .flower-petal:nth-child(1) { transform: rotate(0deg); }
+      .flower-petal:nth-child(2) { transform: rotate(72deg); }
+      .flower-petal:nth-child(3) { transform: rotate(144deg); }
+      .flower-petal:nth-child(4) { transform: rotate(216deg); }
+      .flower-petal:nth-child(5) { transform: rotate(288deg); }
+
+      .flower-center {
+        position: absolute;
+        top: 76px;
+        left: 64px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fff0a9 0 12%, #d89236 42%, #8f4d1e 100%);
+        box-shadow: 0 0 0 3px rgba(255, 222, 142, 0.26);
+      }
+
+      @media (max-width: 520px) {
+        .flower-corner {
+          transform: scale(0.75) rotate(14deg);
+          transform-origin: top right;
+        }
+      }
+
       /* 실제 인쇄되는 종이 시트 */
       .paper-sheet {
         position: absolute;
@@ -470,6 +520,14 @@
       <!-- 1. 종이 및 타자기 인쇄 영역 -->
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
+        <div class="flower-corner" aria-hidden="true">
+          <span class="flower-petal"></span>
+          <span class="flower-petal"></span>
+          <span class="flower-petal"></span>
+          <span class="flower-petal"></span>
+          <span class="flower-petal"></span>
+          <span class="flower-center"></span>
+        </div>
 
         <!-- 상단 HUD -->
         <div class="top-hud">
