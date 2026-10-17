@@ -1492,7 +1492,7 @@
           automata.jung = before.jung;
           automata.jong = before.jong;
           bumpCharLimit();
-          return;
+          return false;
         }
 
         if (k === "Enter") sound.playReturnBell();
@@ -1500,6 +1500,7 @@
         triggerStrike();
         updateScreen();
         if (k !== " " && k !== "Enter") triggerTypeImpact();
+        return true;
       }
 
       // 한도에 막힌 키는 소리·타격 없이 글자 수만 흔든다
@@ -1707,7 +1708,11 @@
         }
 
         const key = DEMO_SEQUENCE[demoIdx++];
-        handleKey(key);
+        // 한도에 막히면 자동 타이핑도 거기서 멈춘다
+        if (handleKey(key) === false) {
+          stopDemo();
+          return;
+        }
 
         let delay = 145 + Math.random() * 70;
         if (key === "Enter") delay = 420;
