@@ -277,6 +277,218 @@
         letter-spacing: -0.02em;
       }
 
+      .summary-btn {
+        border: 1px solid rgba(212, 162, 89, 0.55);
+        border-radius: 14px;
+        padding: 5px 12px;
+        background: rgba(212, 162, 89, 0.16);
+        color: #ecc482;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .summary-btn:hover,
+      .summary-btn:focus-visible {
+        background: rgba(212, 162, 89, 0.32);
+        color: #fff0ca;
+        outline: none;
+      }
+
+      .archive-btn {
+        border: 1px solid rgba(178, 151, 112, 0.5);
+        border-radius: 14px;
+        padding: 5px 12px;
+        background: rgba(178, 151, 112, 0.12);
+        color: #d6c5a7;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .archive-btn:hover,
+      .archive-btn:focus-visible {
+        background: rgba(178, 151, 112, 0.28);
+        color: #fff0d3;
+        outline: none;
+      }
+
+      .tear-shred {
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        bottom: 17%;
+        height: 42%;
+        z-index: 8;
+        border: 1px solid rgba(108, 83, 51, 0.52);
+        background: #d2c9b6;
+        box-shadow: 0 18px 28px rgba(0, 0, 0, 0.38);
+        transform-origin: bottom center;
+        animation: tearAway 720ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
+        pointer-events: none;
+      }
+
+      .tear-shred::after {
+        content: "보관 중…";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(48, 40, 30, 0.62);
+        font: 18px "Gowun Batang", serif;
+      }
+
+      @keyframes tearAway {
+        0% { opacity: 1; transform: translateY(0) rotate(0) scaleY(1); clip-path: polygon(0 0, 100% 0, 97% 100%, 2% 100%); }
+        55% { opacity: 1; transform: translateY(-12px) rotate(-2deg) scaleY(0.94); }
+        100% { opacity: 0; transform: translateY(75%) rotate(5deg) scaleY(0.42); clip-path: polygon(0 0, 100% 0, 75% 100%, 21% 100%); }
+      }
+
+      .archive-backdrop {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 70px 28px 36px;
+        background: rgba(12, 11, 9, 0.72);
+        z-index: 21;
+      }
+
+      .archive-backdrop[hidden] { display: none; }
+
+      .archive-panel {
+        width: min(100%, 570px);
+        max-height: 100%;
+        overflow: auto;
+        padding: 28px 30px 24px;
+        border: 1px solid #4d4233;
+        border-radius: 7px;
+        background: #24221d;
+        color: #e1d3ba;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      }
+
+      .archive-panel-head { display: flex; justify-content: space-between; align-items: start; gap: 18px; }
+      .archive-panel h2 { font: 24px "Gowun Batang", serif; color: #f0dfbd; }
+      .archive-panel p { margin-top: 5px; color: #9f9584; font-size: 12px; }
+      .archive-close { border: 0; background: transparent; color: #b9ab92; font-size: 22px; cursor: pointer; }
+      .archive-list { display: grid; gap: 10px; margin-top: 22px; min-width: 0; }
+      .archive-empty { padding: 28px 8px; color: #9f9584; text-align: center; font: 15px "Gowun Batang", serif; }
+      .archive-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid #464035; border-radius: 5px; background: #2c2923; }
+      .archive-item-copy { flex: 1; min-width: 0; }
+      .archive-item-date { color: #c4a873; font: 11px "Courier Prime", monospace; }
+      .archive-item-text { overflow: hidden; margin-top: 5px; color: #e4dac6; white-space: nowrap; text-overflow: ellipsis; font: 14px "Gowun Batang", serif; }
+      .archive-restore { flex-shrink: 0; border: 1px solid #776143; border-radius: 4px; padding: 6px 10px; background: #403527; color: #ecd29e; font-size: 12px; font-family: inherit; cursor: pointer; }
+      .archive-restore:hover, .archive-restore:focus-visible { background: #59472e; outline: none; }
+
+      .summary-backdrop {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 72px 28px 40px;
+        background: rgba(12, 11, 9, 0.64);
+        z-index: 20;
+      }
+
+      .summary-backdrop[hidden] { display: none; }
+
+      .summary-card {
+        position: relative;
+        width: min(100%, 560px);
+        max-height: 100%;
+        padding: 30px 34px 24px;
+        overflow: auto;
+        border: 1px solid rgba(188, 157, 103, 0.62);
+        border-radius: 5px;
+        background: #d9ceb9;
+        color: #30281e;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(91, 67, 37, 0.08);
+        font-family: "Gowun Batang", "Nanum Myeongjo", serif;
+      }
+
+      .summary-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.16;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.55'/%3E%3C/svg%3E");
+      }
+
+      .summary-close {
+        position: absolute;
+        top: 10px;
+        right: 13px;
+        border: 0;
+        background: transparent;
+        color: #65543e;
+        font-size: 22px;
+        cursor: pointer;
+      }
+
+      .summary-kicker {
+        color: #836b45;
+        font: 11px "Courier Prime", monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .summary-title {
+        margin-top: 7px;
+        font-size: 26px;
+        line-height: 1.3;
+      }
+
+      .summary-list {
+        display: grid;
+        gap: 12px;
+        margin: 22px 0 26px;
+        padding-left: 22px;
+        line-height: 1.75;
+      }
+
+      .summary-list li::marker { color: #a27b43; }
+
+      .summary-controls {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-top: 1px solid rgba(92, 70, 39, 0.26);
+        padding-top: 14px;
+      }
+
+      .summary-nav,
+      .summary-save {
+        border: 1px solid rgba(92, 70, 39, 0.42);
+        border-radius: 4px;
+        padding: 7px 11px;
+        background: rgba(255, 247, 225, 0.26);
+        color: #4a3925;
+        font: 12px "Gowun Batang", serif;
+        cursor: pointer;
+      }
+
+      .summary-nav:disabled { opacity: 0.35; cursor: default; }
+      .summary-save { margin-left: auto; background: rgba(96, 72, 35, 0.12); }
+      .summary-page { min-width: 48px; text-align: center; color: #806a4d; font: 12px "Courier Prime", monospace; }
+
+      @media (max-width: 520px) {
+        .top-hud { left: 12px; right: 12px; }
+        .hud-right { gap: 7px; }
+        .char-counter { display: none; }
+        .archive-btn { padding-inline: 8px; }
+        .summary-backdrop { padding: 62px 14px 28px; }
+        .summary-card { padding: 28px 24px 20px; }
+        .archive-backdrop { padding: 62px 14px 28px; }
+        .archive-panel { padding-inline: 20px; }
+      }
+
       /* 타자기 T자 활자 가이드 */
       .type-guide-container {
         position: absolute;
@@ -682,6 +894,9 @@
             <span class="wordmark">Platen</span>
           </div>
           <div class="hud-right">
+            <button class="summary-btn" id="summaryBtn" type="button">요약</button>
+            <button class="archive-btn" id="archiveBtn" type="button">찢어 보관</button>
+            <button class="archive-btn" id="archiveOpenBtn" type="button">보관함</button>
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
@@ -698,6 +913,34 @@
 
         <!-- 나이트 램프 빛 & 그림자 레이어 -->
         <div class="lighting-layer" id="lightingLayer"></div>
+
+        <div class="summary-backdrop" id="summaryBackdrop" hidden>
+          <section class="summary-card" id="summaryCard" aria-labelledby="summaryTitle">
+            <button class="summary-close" id="summaryCloseBtn" type="button" aria-label="요약 닫기">×</button>
+            <div class="summary-kicker" id="summaryKicker">PLATEN NOTE</div>
+            <h2 class="summary-title" id="summaryTitle">요약</h2>
+            <ul class="summary-list" id="summaryList"></ul>
+            <div class="summary-controls">
+              <button class="summary-nav" id="summaryPrevBtn" type="button">← 이전</button>
+              <span class="summary-page" id="summaryPage">1 / 1</span>
+              <button class="summary-nav" id="summaryNextBtn" type="button">다음 →</button>
+              <button class="summary-save" id="summarySaveBtn" type="button">이미지로 저장</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="archive-backdrop" id="archiveBackdrop" hidden>
+          <section class="archive-panel" aria-labelledby="archiveTitle">
+            <div class="archive-panel-head">
+              <div>
+                <h2 id="archiveTitle">찢어 보관한 메모</h2>
+                <p>종이를 찢어도 기억은 책상 서랍에 남아 있어요.</p>
+              </div>
+              <button class="archive-close" id="archiveCloseBtn" type="button" aria-label="보관함 닫기">×</button>
+            </div>
+            <div class="archive-list" id="archiveList"></div>
+          </section>
+        </div>
 
         <!-- 타자기 T자 활자 가이드 -->
         <div class="type-guide-container">
@@ -1321,6 +1564,249 @@
         "(prefers-reduced-motion: reduce)",
       );
 
+      const summaryBtn = document.getElementById("summaryBtn");
+      const summaryBackdrop = document.getElementById("summaryBackdrop");
+      const summaryCard = document.getElementById("summaryCard");
+      const summaryCloseBtn = document.getElementById("summaryCloseBtn");
+      const summaryKicker = document.getElementById("summaryKicker");
+      const summaryTitle = document.getElementById("summaryTitle");
+      const summaryList = document.getElementById("summaryList");
+      const summaryPage = document.getElementById("summaryPage");
+      const summaryPrevBtn = document.getElementById("summaryPrevBtn");
+      const summaryNextBtn = document.getElementById("summaryNextBtn");
+      const summarySaveBtn = document.getElementById("summarySaveBtn");
+      const archiveBtn = document.getElementById("archiveBtn");
+      const archiveOpenBtn = document.getElementById("archiveOpenBtn");
+      const archiveBackdrop = document.getElementById("archiveBackdrop");
+      const archiveCloseBtn = document.getElementById("archiveCloseBtn");
+      const archiveList = document.getElementById("archiveList");
+      let summaryPages = [];
+      let summaryIndex = 0;
+
+      function getNoteText() {
+        return `${committedStr}${automata.getComposingChar()}`.trim();
+      }
+
+      function shortenSummaryLine(line) {
+        const clean = line.replace(/^[-*•]\s*/, "").trim();
+        if (clean.length <= 100) return clean;
+        return `${clean.slice(0, 97).trim()}…`;
+      }
+
+      function makeSummaryPages() {
+        const note = getNoteText();
+        if (!note) {
+          return [{ title: "아직 메모가 없어요", items: ["종이 위에 먼저 생각을 적어보세요."] }];
+        }
+
+        const blocks = note.split(/\n\s*\n/).map((block) =>
+          block.split("\n").map((line) => line.trim()).filter(Boolean),
+        ).filter((block) => block.length);
+        const pages = blocks.slice(0, 5).map((lines, index) => {
+          const first = lines[0];
+          const hasList = lines.some((line) => /^([-*•]|\d+[.)])\s*/.test(line));
+          let title = `요약 ${index + 1}`;
+          if (/[:：]$/.test(first)) title = first.replace(/[:：]$/, "");
+          else if (hasList && lines.some((line) => /^[-*•]\s*/.test(line))) title = "다음 할 일";
+          else if (hasList) title = "기억할 것";
+          else if (index === 0) title = "오늘의 기록";
+
+          const sourceLines = /[:：]$/.test(first) ? lines.slice(1) : lines;
+          const items = sourceLines.slice(0, 3).map(shortenSummaryLine);
+          return { title, items: items.length ? items : [shortenSummaryLine(first)] };
+        });
+
+        if (pages.length) return pages;
+        return [{ title: "요약", items: [shortenSummaryLine(note)] }];
+      }
+
+      function renderSummaryPage() {
+        const page = summaryPages[summaryIndex];
+        summaryKicker.textContent = `PLATEN NOTE · ${String(summaryIndex + 1).padStart(2, "0")}`;
+        summaryTitle.textContent = page.title;
+        summaryList.replaceChildren();
+        page.items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          summaryList.appendChild(li);
+        });
+        summaryPage.textContent = `${summaryIndex + 1} / ${summaryPages.length}`;
+        summaryPrevBtn.disabled = summaryIndex === 0;
+        summaryNextBtn.disabled = summaryIndex === summaryPages.length - 1;
+      }
+
+      function openSummary() {
+        stopDemo();
+        summaryPages = makeSummaryPages();
+        summaryIndex = 0;
+        renderSummaryPage();
+        summaryBackdrop.hidden = false;
+        summaryCloseBtn.focus();
+      }
+
+      function closeSummary() {
+        summaryBackdrop.hidden = true;
+        desk.focus();
+      }
+
+      function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = [...text];
+        let line = "";
+        words.forEach((char) => {
+          const testLine = line + char;
+          if (ctx.measureText(testLine).width > maxWidth && line) {
+            ctx.fillText(line, x, y);
+            line = char;
+            y += lineHeight;
+          } else {
+            line = testLine;
+          }
+        });
+        if (line) ctx.fillText(line, x, y);
+        return y + lineHeight;
+      }
+
+      function saveSummaryImage() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1200;
+        canvas.height = 800;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#d9ceb9";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "rgba(93, 67, 35, 0.32)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(32, 32, canvas.width - 64, canvas.height - 64);
+        ctx.fillStyle = "#836b45";
+        ctx.font = "20px Courier Prime, monospace";
+        ctx.fillText(summaryKicker.textContent, 82, 100);
+        ctx.fillStyle = "#30281e";
+        ctx.font = "bold 46px Gowun Batang, Nanum Myeongjo, serif";
+        ctx.fillText(summaryTitle.textContent, 82, 170);
+        ctx.font = "28px Gowun Batang, Nanum Myeongjo, serif";
+        let y = 250;
+        summaryPages[summaryIndex].items.forEach((item) => {
+          ctx.fillStyle = "#a27b43";
+          ctx.fillText("·", 90, y);
+          ctx.fillStyle = "#30281e";
+          y = drawWrappedText(ctx, item, 130, y, 970, 44) + 22;
+        });
+        ctx.fillStyle = "#806a4d";
+        ctx.font = "20px Courier Prime, monospace";
+        ctx.fillText(`${summaryIndex + 1} / ${summaryPages.length}`, 82, 710);
+
+        const link = document.createElement("a");
+        link.download = `platen-요약-${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+
+      summaryBtn.addEventListener("click", openSummary);
+      summaryCloseBtn.addEventListener("click", closeSummary);
+      summaryBackdrop.addEventListener("click", (event) => {
+        if (event.target === summaryBackdrop) closeSummary();
+      });
+      summaryPrevBtn.addEventListener("click", () => {
+        if (summaryIndex > 0) { summaryIndex -= 1; renderSummaryPage(); }
+      });
+      summaryNextBtn.addEventListener("click", () => {
+        if (summaryIndex < summaryPages.length - 1) { summaryIndex += 1; renderSummaryPage(); }
+      });
+      summarySaveBtn.addEventListener("click", saveSummaryImage);
+
+      function readArchive() {
+        try {
+          const saved = JSON.parse(localStorage.getItem("platen-archive") || "[]");
+          return Array.isArray(saved) ? saved : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function writeArchive(items) {
+        try { localStorage.setItem("platen-archive", JSON.stringify(items)); } catch (error) {}
+      }
+
+      function renderArchive() {
+        const items = readArchive();
+        archiveList.replaceChildren();
+        if (!items.length) {
+          const empty = document.createElement("p");
+          empty.className = "archive-empty";
+          empty.textContent = "아직 서랍에 넣은 메모가 없어요.";
+          archiveList.appendChild(empty);
+          return;
+        }
+
+        items.forEach((item) => {
+          const row = document.createElement("article");
+          row.className = "archive-item";
+          const copy = document.createElement("div");
+          copy.className = "archive-item-copy";
+          const date = document.createElement("div");
+          date.className = "archive-item-date";
+          date.textContent = new Date(item.createdAt).toLocaleString("ko-KR", {
+            month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+          });
+          const text = document.createElement("div");
+          text.className = "archive-item-text";
+          text.textContent = item.text.replace(/\s+/g, " ");
+          copy.append(date, text);
+          const restore = document.createElement("button");
+          restore.className = "archive-restore";
+          restore.type = "button";
+          restore.textContent = "꺼내기";
+          restore.addEventListener("click", () => {
+            stopDemo();
+            committedStr = item.text;
+            automata.reset();
+            updateScreen();
+            closeArchive();
+          });
+          row.append(copy, restore);
+          archiveList.appendChild(row);
+        });
+      }
+
+      function openArchive() {
+        stopDemo();
+        renderArchive();
+        archiveBackdrop.hidden = false;
+        archiveCloseBtn.focus();
+      }
+
+      function closeArchive() {
+        archiveBackdrop.hidden = true;
+        desk.focus();
+      }
+
+      function archiveCurrentNote() {
+        const note = getNoteText();
+        if (!note) {
+          openArchive();
+          return;
+        }
+        stopDemo();
+        const items = readArchive();
+        items.unshift({ id: crypto.randomUUID?.() || String(Date.now()), text: note, createdAt: new Date().toISOString() });
+        writeArchive(items.slice(0, 12));
+        const shred = document.createElement("div");
+        shred.className = "tear-shred";
+        paperViewport.appendChild(shred);
+        setTimeout(() => {
+          committedStr = "";
+          automata.reset();
+          updateScreen();
+          shred.remove();
+        }, 670);
+      }
+
+      archiveBtn.addEventListener("click", archiveCurrentNote);
+      archiveOpenBtn.addEventListener("click", openArchive);
+      archiveCloseBtn.addEventListener("click", closeArchive);
+      archiveBackdrop.addEventListener("click", (event) => {
+        if (event.target === archiveBackdrop) closeArchive();
+      });
+
       // T자 활자 타격 애니메이션
       function triggerStrike() {
         if (reducedMotionQuery.matches) return;
@@ -1617,6 +2103,22 @@
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
         if (e.target === fontSelect || e.target === impactToggle) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+        if (!summaryBackdrop.hidden) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeSummary();
+          }
+          return;
+        }
+
+        if (!archiveBackdrop.hidden) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeArchive();
+          }
+          return;
+        }
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
