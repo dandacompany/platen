@@ -17,6 +17,8 @@
     <style>
       :root {
         --lamp-x: 200px;
+        --lamp-core: #ffd885;
+        --lamp-glow: #e09638;
       }
 
       * {
@@ -301,8 +303,8 @@
         border-radius: 50%;
         background: radial-gradient(
           circle,
-          #ffd885 0%,
-          #e09638 70%,
+          var(--lamp-core) 0%,
+          var(--lamp-glow) 70%,
           #6e4514 100%
         );
         box-shadow: 0 0 8px 2px rgba(255, 196, 95, 0.75);
@@ -437,9 +439,25 @@
       }
 
       .sun-toggle-btn.active {
-        color: #f3c878;
+        color: var(--lamp-core);
         border-color: #544936;
         box-shadow: 0 0 12px rgba(243, 200, 120, 0.18);
+      }
+
+      .color-select {
+        width: 100%;
+        min-width: 0;
+        padding: 5px 8px;
+        border: 1px solid #454139;
+        border-radius: 4px;
+        background: #24221e;
+        color: #dcd5c5;
+        font: 12px "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+        cursor: pointer;
+      }
+      .color-select:focus {
+        outline: 1px solid var(--lamp-core);
+        outline-offset: 2px;
       }
 
       /* ================= 3. 하단 안내 줄 ================= */
@@ -558,6 +576,19 @@
                 value="100"
               />
             </div>
+          </div>
+
+          <div class="control-col">
+            <label class="control-label" for="colorSelect">빛 색상</label>
+            <select class="color-select" id="colorSelect">
+              <option value="warm">따뜻한 전구</option>
+              <option value="neutral">중립 조명</option>
+              <option value="cool">차가운 달빛</option>
+              <option value="bright">밝은 전구</option>
+              <option value="green">초록 조명</option>
+              <option value="blue">파랑 조명</option>
+              <option value="red">빨강 조명</option>
+            </select>
           </div>
 
           <button
@@ -1184,6 +1215,61 @@
       const distLabel = document.getElementById("distLabel");
       const sunToggleBtn = document.getElementById("sunToggleBtn");
       const lampAssembly = document.getElementById("lampAssembly");
+      const colorSelect = document.getElementById("colorSelect");
+
+      const LAMP_COLORS = {
+        warm: {
+          core: "#ffd885",
+          glow: "#e09638",
+          light: "255, 220, 120",
+          mid: "255, 174, 60",
+        },
+        neutral: {
+          core: "#fff4d6",
+          glow: "#d9c28b",
+          light: "255, 250, 220",
+          mid: "245, 226, 170",
+        },
+        cool: {
+          core: "#b9d8ff",
+          glow: "#668ed0",
+          light: "150, 205, 255",
+          mid: "75, 145, 235",
+        },
+        bright: {
+          core: "#fff7b0",
+          glow: "#ffbf38",
+          light: "255, 248, 150",
+          mid: "255, 190, 55",
+        },
+        green: {
+          core: "#b6ff9b",
+          glow: "#39c96b",
+          light: "105, 255, 120",
+          mid: "25, 190, 80",
+        },
+        blue: {
+          core: "#9fdcff",
+          glow: "#2688ff",
+          light: "80, 180, 255",
+          mid: "30, 105, 230",
+        },
+        red: {
+          core: "#ffaaa0",
+          glow: "#f04444",
+          light: "255, 90, 80",
+          mid: "205, 35, 45",
+        },
+      };
+
+      let lampColor = LAMP_COLORS.warm;
+
+      function applyLampColor(colorName) {
+        lampColor = LAMP_COLORS[colorName] || LAMP_COLORS.warm;
+        document.documentElement.style.setProperty("--lamp-core", lampColor.core);
+        document.documentElement.style.setProperty("--lamp-glow", lampColor.glow);
+        updateLightingOverlay();
+      }
 
       let isLampOn = true;
 
@@ -1218,10 +1304,10 @@
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(255, 232, 175, 0.28) 0%,
-      rgba(255, 214, 140, 0.12) ${coreStop}%,
-      rgba(22, 20, 17, 0.48) ${midStop}%,
-      rgba(14, 13, 11, 0.78) 100%
+      rgba(${lampColor.light}, 0.48) 0%,
+      rgba(${lampColor.mid}, 0.25) ${coreStop}%,
+      rgba(22, 20, 17, 0.36) ${midStop}%,
+      rgba(14, 13, 11, 0.68) 100%
     )
   `;
       }
@@ -1230,6 +1316,11 @@
         slider.addEventListener("input", () => updateLightingOverlay());
         // 슬라이더를 만진 뒤에도 키보드 입력이 종이로 가도록 포커스를 돌려준다
         slider.addEventListener("change", () => desk.focus());
+      });
+
+      colorSelect.addEventListener("change", () => {
+        applyLampColor(colorSelect.value);
+        desk.focus();
       });
 
       sunToggleBtn.addEventListener("click", () => {
