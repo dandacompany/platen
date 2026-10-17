@@ -277,6 +277,22 @@
         letter-spacing: -0.02em;
       }
 
+      /* 3,000자에 닿으면 붉은 잉크로 바꾸고, 더 치려 하면 살짝 흔들어 알린다 */
+      .char-counter.at-limit {
+        color: #e07a5f;
+      }
+      .char-counter.limit-bump {
+        animation: limitBump 0.32s ease;
+      }
+      @keyframes limitBump {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-3px); }
+        75% { transform: translateX(3px); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .char-counter.limit-bump { animation: none; }
+      }
+
       /* 타자기 T자 활자 가이드 */
       .type-guide-container {
         position: absolute;
@@ -683,7 +699,7 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
-            <div class="char-counter">
+            <div class="char-counter" id="charCounter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
           </div>
@@ -1315,7 +1331,9 @@
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
       const impactToggle = document.getElementById("impactToggle");
+      const charCounterEl = document.getElementById("charCounter");
       const charCountEl = document.getElementById("charCount");
+      const MAX_CHARS = 3000;
       const lineCountEl = document.getElementById("lineCount");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
@@ -1396,6 +1414,7 @@
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
         charCountEl.textContent = totalLen.toLocaleString();
+        charCounterEl.classList.toggle("at-limit", totalLen >= MAX_CHARS);
         lineCountEl.textContent = (committedStr + comp).split("\n").length;
 
         requestAnimationFrame(() => {
@@ -1451,31 +1470,43 @@
           return;
         }
 
-        if (k === " ") {
-          sound.playKeyClick(true);
-          triggerStrike();
-          committedStr += automata.flush() + " ";
-          updateScreen();
+        // 먼저 적용해 보고 3,000자를 넘으면 되돌린다. 조합 중 글자도 한 자로 센다
+        const before = {
+          text: committedStr,
+          cho: automata.cho,
+          jung: automata.jung,
+          jong: automata.jong,
+        };
+
+        if (k === " " || k === "Enter") {
+          committedStr += automata.flush() + (k === "Enter" ? "\n" : " ");
+        } else {
+          committedStr += automata.inputJamo(k).committed;
+        }
+
+        const totalLen =
+          committedStr.length + (automata.getComposingChar() ? 1 : 0);
+        if (totalLen > MAX_CHARS) {
+          committedStr = before.text;
+          automata.cho = before.cho;
+          automata.jung = before.jung;
+          automata.jong = before.jong;
+          bumpCharLimit();
           return;
         }
 
-        if (k === "Enter") {
-          sound.playReturnBell();
-          triggerStrike();
-          committedStr += automata.flush() + "\n";
-          updateScreen();
-          return;
-        }
-
-        sound.playKeyClick(false);
+        if (k === "Enter") sound.playReturnBell();
+        else sound.playKeyClick(k === " ");
         triggerStrike();
-
-        const res = automata.inputJamo(k);
-        if (res.committed) {
-          committedStr += res.committed;
-        }
         updateScreen();
-        triggerTypeImpact();
+        if (k !== " " && k !== "Enter") triggerTypeImpact();
+      }
+
+      // 한도에 막힌 키는 소리·타격 없이 글자 수만 흔든다
+      function bumpCharLimit() {
+        charCounterEl.classList.remove("limit-bump");
+        void charCounterEl.offsetWidth;
+        charCounterEl.classList.add("limit-bump");
       }
 
       /* =========================================================================
