@@ -71,6 +71,20 @@
         cursor: text;
       }
 
+      /* 빛바랜 편지지: 누렇게 바랜 바탕. 가장자리 어둠은 보이는 종이 테두리에 고정해
+         타이핑으로 종이가 올라가도 늘 화면 가장자리에 남는다(잡티 위, 램프 조명 아래). */
+      .paper-viewport[data-paper="letter"] {
+        background-color: #e2cfa6;
+      }
+      .paper-viewport[data-paper="letter"]::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+        box-shadow: inset 0 0 60px rgba(120, 80, 30, 0.35);
+      }
+
       /* 종이 질감 노이즈 레이어 */
       .paper-texture {
         position: absolute;
@@ -652,6 +666,10 @@
         background-size: 7px 7px;
         background-position: 3px 6px;
       }
+      .paper-swatch[data-paper="letter"] {
+        background-color: #e2cfa6;
+        box-shadow: inset 0 0 8px rgba(120, 80, 30, 0.5), 2px 4px 7px #0007;
+      }
       .paper-swatch[data-paper="hanji"] {
         background-color: #ece3cf;
         background-image: var(--hanji-fibers);
@@ -869,6 +887,9 @@
               </button>
               <button type="button" class="paper-option" data-paper="hanji" aria-pressed="false">
                 <span class="paper-swatch" data-paper="hanji" aria-hidden="true"></span>한지
+              </button>
+              <button type="button" class="paper-option" data-paper="letter" aria-pressed="false">
+                <span class="paper-swatch" data-paper="letter" aria-hidden="true"></span>편지지
               </button>
             </div>
           </div>
@@ -1740,7 +1761,7 @@
       });
 
       // 종이 양식: 겉모습만 바꾸고 글 내용과 조합 상태는 건드리지 않는다.
-      const PAPER_NAMES = { plain: "민무늬", notebook: "줄 공책", grid: "모눈", hanji: "한지" };
+      const PAPER_NAMES = { plain: "민무늬", notebook: "줄 공책", grid: "모눈", hanji: "한지", letter: "편지지" };
       const paperToggleBtn = document.getElementById("paperToggleBtn");
       const paperToggleSwatch = document.getElementById("paperToggleSwatch");
       const paperStylePanel = document.getElementById("paperStylePanel");
@@ -1755,6 +1776,7 @@
         Object.keys(PAPER_NAMES).forEach((name) => {
           if (name !== "plain") paperSheet.classList.toggle(name, kind === name);
         });
+        paperViewport.dataset.paper = kind;
         paperToggleSwatch.dataset.paper = kind;
         paperToggleBtn.setAttribute("aria-label", `종이 양식 고르기 (지금: ${PAPER_NAMES[kind]})`);
         paperOptions.forEach((opt) => {
