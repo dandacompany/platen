@@ -90,6 +90,56 @@
         transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
       }
 
+      /* 실제 타이핑의 속도와 멈춤을 종이 오른쪽 여백에 남긴다. */
+      .rhythm-margin-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 5;
+        transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .rhythm-mark {
+        position: absolute;
+        right: 18px;
+        width: var(--rhythm-length);
+        height: 3px;
+        border-radius: 999px;
+        background: #1e1a15;
+        box-shadow: 0 0 2px rgba(25, 20, 15, 0.35);
+        opacity: var(--rhythm-opacity);
+        transform: translateY(-50%) scaleX(0.45);
+        transform-origin: right center;
+        animation: rhythmMarkAppear 240ms cubic-bezier(0.22, 1, 0.36, 1)
+          forwards;
+      }
+
+      .rhythm-mark.rhythm-pause {
+        width: 36px;
+        height: 1px;
+        border-radius: 0;
+        background: rgba(70, 57, 42, 0.7);
+        box-shadow: none;
+        opacity: 0.55;
+      }
+
+      @media (max-width: 480px) {
+        .paper-sheet {
+          padding-right: 118px;
+        }
+
+        .rhythm-mark {
+          right: 78px;
+          width: min(var(--rhythm-length), 36px);
+        }
+      }
+
+      @keyframes rhythmMarkAppear {
+        to {
+          transform: translateY(-50%) scaleX(1);
+        }
+      }
+
       /* 링과 입자를 담는 기준점. 입자가 링의 크기·투명도 변화를 물려받지 않게 분리한다 */
       .type-impact {
         position: absolute;
@@ -167,6 +217,11 @@
 
         .type-impact-particle {
           animation: none;
+        }
+
+        .rhythm-mark {
+          animation: none;
+          transform: translateY(-50%) scaleX(1);
         }
       }
 
@@ -672,6 +727,7 @@
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
         <div class="type-impact-layer" id="typeImpactLayer" aria-hidden="true"></div>
+        <div class="rhythm-margin-layer" id="rhythmMarginLayer" aria-hidden="true"></div>
 
         <!-- 상단 HUD -->
         <div class="top-hud">
@@ -1314,6 +1370,7 @@
       const paperViewport = document.getElementById("paperViewport");
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
+      const rhythmMarginLayer = document.getElementById("rhythmMarginLayer");
       const impactToggle = document.getElementById("impactToggle");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
@@ -1376,6 +1433,65 @@
       const clearTypeImpacts = () => {
         while (typeImpactLayer.firstChild) typeImpactLayer.firstChild.remove();
       };
+
+      let lastRhythmInputAt = null;
+      let rhythmMarkCount = 0;
+      let rhythmRevision = 0;
+      const RHYTHM_PAUSE_MS = 1000;
+      const RHYTHM_MARK_SPACING = 7;
+      const RHYTHM_MAX_MARKS = 36;
+      const RHYTHM_MARGIN_OFFSET = 104;
+
+      function clearRhythmMarks() {
+        rhythmMarginLayer.replaceChildren();
+        lastRhythmInputAt = null;
+        rhythmMarkCount = 0;
+        rhythmRevision += 1;
+      }
+
+      function createRhythmMark({ cursorTop, interval, isPause }) {
+        const mark = document.createElement("span");
+        mark.className = `rhythm-mark${isPause ? " rhythm-pause" : ""}`;
+        mark.style.top = `${cursorTop}px`;
+
+        if (!isPause) {
+          const normalized = Math.max(0, Math.min(1, 1 - interval / 900));
+          mark.style.setProperty("--rhythm-length", `${12 + normalized * 38}px`);
+          mark.style.setProperty("--rhythm-opacity", `${0.25 + normalized * 0.6}`);
+        }
+
+        rhythmMarginLayer.appendChild(mark);
+      }
+
+      function recordRhythmInput() {
+        const now = performance.now();
+        const interval =
+          lastRhythmInputAt === null ? null : now - lastRhythmInputAt;
+        lastRhythmInputAt = now;
+        if (interval === null) return;
+        const revision = rhythmRevision;
+
+        requestAnimationFrame(() => {
+          if (revision !== rhythmRevision) return;
+          const layerRect = rhythmMarginLayer.getBoundingClientRect();
+          const cursorRect = cursorAnchor.getBoundingClientRect();
+          const cursorTop =
+            cursorRect.top - layerRect.top + cursorRect.height / 2;
+          if (rhythmMarkCount >= RHYTHM_MAX_MARKS) {
+            rhythmMarginLayer.firstElementChild?.remove();
+            rhythmMarkCount -= 1;
+          }
+          createRhythmMark({
+            cursorTop:
+              cursorTop -
+              RHYTHM_MARGIN_OFFSET -
+              rhythmMarkCount * RHYTHM_MARK_SPACING,
+            interval,
+            isPause: interval >= RHYTHM_PAUSE_MS,
+          });
+          rhythmMarkCount += 1;
+        });
+      }
       impactToggle.addEventListener("change", () => {
         if (!impactToggle.checked) clearTypeImpacts();
       });
@@ -1425,6 +1541,7 @@
           const translateY = targetPrintLineY - anchorOffsetTop;
           paperSheet.style.transform = `translateY(${translateY}px)`;
           typeImpactLayer.style.transform = paperSheet.style.transform;
+          rhythmMarginLayer.style.transform = paperSheet.style.transform;
 
           updateLightingOverlay(clampedX, viewportRect.height);
         });
@@ -1615,8 +1732,13 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target instanceof Element &&
+          e.target.closest("button, input, select, textarea, [contenteditable='true']")
+        )
+          return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (!e.isTrusted) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
@@ -1627,18 +1749,21 @@
         if (e.code === "Backspace" || e.key === "Backspace") {
           e.preventDefault();
           handleKey("BACK");
+          recordRhythmInput();
           return;
         }
 
         if (e.code === "Enter" || e.key === "Enter") {
           e.preventDefault();
           handleKey("Enter");
+          recordRhythmInput();
           return;
         }
 
         if (e.code === "Space" || e.key === " ") {
           e.preventDefault();
           handleKey(" ");
+          recordRhythmInput();
           return;
         }
 
@@ -1649,6 +1774,7 @@
             ? CODE_TO_JAMO[e.code][1]
             : CODE_TO_JAMO[e.code][0];
           handleKey(jamo);
+          recordRhythmInput();
           return;
         }
 
@@ -1656,6 +1782,7 @@
         if (e.key && e.key.length === 1 && e.key !== "Process") {
           e.preventDefault();
           handleKey(e.key);
+          recordRhythmInput();
         }
       });
 
@@ -1695,6 +1822,7 @@
       function startDemo(resetText = false) {
         if (resetText) {
           clearTypeImpacts();
+          clearRhythmMarks();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
