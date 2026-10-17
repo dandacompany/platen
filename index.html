@@ -181,6 +181,95 @@
         background: rgba(212, 162, 89, 0.32);
       }
 
+      .archive-toggle {
+        background: none;
+        border: 1px solid rgba(175, 166, 148, 0.32);
+        border-radius: 14px;
+        color: rgba(220, 211, 191, 0.82);
+        font-size: 11px;
+        padding: 4px 9px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .archive-toggle:hover {
+        border-color: rgba(236, 196, 130, 0.65);
+        color: #ecc482;
+      }
+
+      .archive-panel {
+        position: absolute;
+        top: 58px;
+        right: 22px;
+        z-index: 11;
+        width: min(330px, calc(100% - 44px));
+        max-height: 48vh;
+        overflow-y: auto;
+        padding: 14px;
+        border: 1px solid rgba(212, 162, 89, 0.45);
+        border-radius: 8px;
+        background: rgba(28, 27, 24, 0.96);
+        color: #e2dac9;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+      }
+      .archive-panel[hidden] {
+        display: none;
+      }
+      .archive-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: #ecc482;
+      }
+      .archive-close {
+        border: 0;
+        background: transparent;
+        color: #b9b1a1;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .archive-empty {
+        margin: 4px 0;
+        color: #9e998e;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .archive-list {
+        display: grid;
+        gap: 8px;
+        list-style: none;
+      }
+      .archive-item {
+        display: grid;
+        gap: 7px;
+        padding: 9px;
+        border: 1px solid rgba(175, 166, 148, 0.18);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.035);
+      }
+      .archive-fragment {
+        color: #d8cfbb;
+        font-family: "Gowun Batang", "Nanum Myeongjo", serif;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .archive-reprint {
+        justify-self: end;
+        border: 1px solid rgba(212, 162, 89, 0.4);
+        border-radius: 4px;
+        padding: 4px 8px;
+        background: rgba(212, 162, 89, 0.12);
+        color: #ecc482;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .archive-reprint:hover {
+        background: rgba(212, 162, 89, 0.25);
+      }
+
       .char-counter {
         font-family: "Courier Prime", monospace;
         font-size: 13px;
@@ -481,11 +570,36 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+            <button
+              class="archive-toggle"
+              id="archiveToggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="archivePanel"
+              aria-live="polite"
+            >
+              회수함 0
+            </button>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
           </div>
         </div>
+
+        <section
+          class="archive-panel"
+          id="archivePanel"
+          data-deleted-archive
+          aria-label="삭제 원고 보관함"
+          hidden
+        >
+          <div class="archive-panel-header">
+            <span>삭제 원고 보관함</span>
+            <button class="archive-close" id="archiveClose" type="button" aria-label="보관함 닫기">×</button>
+          </div>
+          <p class="archive-empty" id="archiveEmpty">아직 회수한 문장이 없습니다. 글을 지우면 이곳에 잠시 보관됩니다.</p>
+          <ul class="archive-list" id="archiveList"></ul>
+        </section>
 
         <!-- 타자기 종이 시트 -->
         <div class="paper-sheet" id="paperSheet">
@@ -1086,6 +1200,82 @@
       const typeGuide = document.getElementById("typeGuide");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const archiveToggle = document.getElementById("archiveToggle");
+      const archivePanel = document.getElementById("archivePanel");
+      const archiveClose = document.getElementById("archiveClose");
+      const archiveEmpty = document.getElementById("archiveEmpty");
+      const archiveList = document.getElementById("archiveList");
+      const MAX_ARCHIVED_FRAGMENTS = 5;
+      const archivedFragments = [];
+      let pendingDeletedFragment = "";
+
+      function renderDeletedArchive() {
+        const fragments = (
+          pendingDeletedFragment.trim()
+            ? [pendingDeletedFragment, ...archivedFragments]
+            : [...archivedFragments]
+        ).slice(0, MAX_ARCHIVED_FRAGMENTS);
+        archiveToggle.textContent = `회수함 ${fragments.length}`;
+        archiveToggle.setAttribute(
+          "aria-label",
+          `삭제 원고 보관함, ${fragments.length}개 조각`,
+        );
+        archiveList.replaceChildren();
+        archiveEmpty.hidden = fragments.length > 0;
+
+        fragments.forEach((fragment) => {
+          const item = document.createElement("li");
+          item.className = "archive-item";
+          const text = document.createElement("span");
+          text.className = "archive-fragment";
+          text.textContent = fragment;
+          const reprintButton = document.createElement("button");
+          reprintButton.className = "archive-reprint";
+          reprintButton.type = "button";
+          reprintButton.textContent = "끝에 다시 인쇄";
+          reprintButton.addEventListener("click", () => {
+            finalizeDeletedFragment();
+            stopDemo();
+            sound.init();
+            committedStr += automata.flush() + fragment;
+            updateScreen();
+            desk.focus();
+          });
+          item.append(text, reprintButton);
+          archiveList.append(item);
+        });
+      }
+
+      function finalizeDeletedFragment() {
+        if (!pendingDeletedFragment) return;
+        if (pendingDeletedFragment.trim()) {
+          archivedFragments.unshift(pendingDeletedFragment);
+          archivedFragments.length = Math.min(
+            archivedFragments.length,
+            MAX_ARCHIVED_FRAGMENTS,
+          );
+        }
+        pendingDeletedFragment = "";
+        renderDeletedArchive();
+      }
+
+      function clearDeletedArchive() {
+        archivedFragments.length = 0;
+        pendingDeletedFragment = "";
+        renderDeletedArchive();
+      }
+
+      archiveToggle.addEventListener("click", () => {
+        finalizeDeletedFragment();
+        archivePanel.hidden = !archivePanel.hidden;
+        archiveToggle.setAttribute("aria-expanded", String(!archivePanel.hidden));
+      });
+      archiveClose.addEventListener("click", () => {
+        archivePanel.hidden = true;
+        archiveToggle.setAttribute("aria-expanded", "false");
+        desk.focus();
+      });
+      renderDeletedArchive();
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1137,11 +1327,18 @@
 
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
+        if (k !== "BACK") finalizeDeletedFragment();
+
         if (k === "BACK") {
           sound.playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
+            const removedChar = committedStr.slice(-1);
             committedStr = committedStr.slice(0, -1);
+            if (removedChar) {
+              pendingDeletedFragment = removedChar + pendingDeletedFragment;
+              renderDeletedArchive();
+            }
           }
           updateScreen();
           return;
@@ -1351,6 +1548,7 @@
 
       function startDemo(resetText = false) {
         if (resetText) {
+          clearDeletedArchive();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
