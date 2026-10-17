@@ -556,6 +556,26 @@
         outline-offset: 3px;
       }
 
+      .sound-toggle-btn {
+        border: 1px solid #544936;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: #272521;
+        color: #ecc482;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .sound-toggle-btn[aria-pressed="false"] {
+        color: #9e998e;
+        border-color: #3f3b33;
+      }
+
+      .sound-toggle-btn:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
+      }
+
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
@@ -808,6 +828,15 @@
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
+          <button
+            id="soundToggleBtn"
+            class="sound-toggle-btn"
+            type="button"
+            aria-pressed="true"
+            title="타자 소리 끄기"
+          >
+            🔊 타자 소리 켜짐
+          </button>
         </div>
 
         <!-- 3. 하단 안내 줄 -->
@@ -1315,11 +1344,21 @@
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
       const impactToggle = document.getElementById("impactToggle");
+      const soundToggleBtn = document.getElementById("soundToggleBtn");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
+      let isSoundOn = true;
+
+      function playKeyClick(isSpace = false) {
+        if (isSoundOn) sound.playKeyClick(isSpace);
+      }
+
+      function playReturnBell() {
+        if (isSoundOn) sound.playReturnBell();
+      }
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1378,6 +1417,16 @@
       };
       impactToggle.addEventListener("change", () => {
         if (!impactToggle.checked) clearTypeImpacts();
+      });
+      soundToggleBtn.addEventListener("click", () => {
+        isSoundOn = !isSoundOn;
+        soundToggleBtn.setAttribute("aria-pressed", String(isSoundOn));
+        soundToggleBtn.title = isSoundOn ? "타자 소리 끄기" : "타자 소리 켜기";
+        soundToggleBtn.textContent = isSoundOn
+          ? "🔊 타자 소리 켜짐"
+          : "🔇 타자 소리 꺼짐";
+        if (isSoundOn) sound.init();
+        desk.focus();
       });
       const handleReducedMotionChange = (event) => {
         if (event.matches) clearTypeImpacts();
@@ -1442,7 +1491,7 @@
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
         if (k === "BACK") {
-          sound.playKeyClick(false);
+          playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
@@ -1452,7 +1501,7 @@
         }
 
         if (k === " ") {
-          sound.playKeyClick(true);
+          playKeyClick(true);
           triggerStrike();
           committedStr += automata.flush() + " ";
           updateScreen();
@@ -1460,14 +1509,14 @@
         }
 
         if (k === "Enter") {
-          sound.playReturnBell();
+          playReturnBell();
           triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
           return;
         }
 
-        sound.playKeyClick(false);
+        playKeyClick(false);
         triggerStrike();
 
         const res = automata.inputJamo(k);
@@ -1615,7 +1664,12 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target === fontSelect ||
+          e.target === impactToggle ||
+          e.target === soundToggleBtn
+        )
+          return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
