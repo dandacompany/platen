@@ -71,6 +71,20 @@
         cursor: text;
       }
 
+      /* 빛바랜 편지지: 누렇게 바랜 바탕. 가장자리 어둠은 보이는 종이 테두리에 고정해
+         타이핑으로 종이가 올라가도 늘 화면 가장자리에 남는다(잡티 위, 램프 조명 아래). */
+      .paper-viewport[data-paper="letter"] {
+        background-color: #e2cfa6;
+      }
+      .paper-viewport[data-paper="letter"]::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+        box-shadow: inset 0 0 60px rgba(120, 80, 30, 0.35);
+      }
+
       /* 종이 질감 노이즈 레이어 */
       .paper-texture {
         position: absolute;
@@ -186,6 +200,94 @@
         z-index: 1;
         white-space: pre-wrap;
         word-break: break-all;
+      }
+
+      /* 줄 공책: 한 줄 높이마다 가로줄을 그려 글자가 줄 위에 앉게 한다.
+         --paper-line 은 잉크병 글자 크기와 함께 바뀐다. */
+      /* 종이 바탕은 시트보다 화면 높이만큼 위로 더 그린다. 글이 짧아 시트가 아래로 내려와도
+         위쪽 빈 곳까지 줄·섬유가 이어지고, 시트에 붙어 있어 타이핑할 때 함께 움직인다. */
+      /* 원고지: 정사각형 칸이 한 줄로 이어지고 줄 사이에 빈 띠가 있다.
+         칸 크기(--wg-cell)·줄 간격(--wg-pitch)·한 줄 칸 수(--wg-cols)는 JS 가 글자 크기와 화면 폭으로 정한다.
+         그림 순서: 가로 테두리 → 줄 사이 띠(바탕색으로 세로줄을 가림) → 세로줄 */
+      .paper-sheet.wongoji::before {
+        --wg-ink: rgba(170, 70, 50, 0.55);
+        content: "";
+        position: absolute;
+        top: -100vh;
+        bottom: 0;
+        left: 84px;
+        width: calc(var(--wg-cols, 20) * var(--wg-cell, 29px) + 1px);
+        z-index: -1;
+        pointer-events: none;
+        background-image:
+          linear-gradient(to bottom,
+            var(--wg-ink) 0 1px, transparent 1px var(--wg-cell),
+            var(--wg-ink) var(--wg-cell) calc(var(--wg-cell) + 1px), transparent calc(var(--wg-cell) + 1px)),
+          linear-gradient(to bottom, transparent calc(var(--wg-cell) + 1px), #d2c9b6 calc(var(--wg-cell) + 1px)),
+          linear-gradient(to right, var(--wg-ink) 0 1px, transparent 1px);
+        background-size:
+          100% var(--wg-pitch, 38px),
+          100% var(--wg-pitch, 38px),
+          var(--wg-cell, 29px) var(--wg-pitch, 38px);
+        background-position: 0 calc(100vh + 48px);
+      }
+      /* 원고지에서는 띄어쓰기를 빈 칸으로, 줄바꿈을 <br> 로 그린다. 그래서 공백을 그대로 보여 줄 필요가 없고,
+         HTML 들여쓰기 공백 때문에 첫 칸이 밀리지 않도록 공백 보존을 끈다. */
+      .paper-sheet.wongoji {
+        white-space: normal;
+      }
+      /* 원고지 한 칸에 글자 하나. 조합 중인 글자도 다음 칸에 들어간다. */
+      .paper-sheet.wongoji .wg-cell,
+      .paper-sheet.wongoji .composing-char:not(:empty) {
+        display: inline-block;
+        width: var(--wg-cell, 29px);
+        height: var(--wg-cell, 29px);
+        line-height: var(--wg-cell, 29px);
+        text-align: center;
+        vertical-align: top;
+        letter-spacing: 0;
+      }
+
+      .paper-sheet.notebook::before,
+      .paper-sheet.grid::before,
+      .paper-sheet.hanji::before {
+        content: "";
+        position: absolute;
+        top: -100vh;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      .paper-sheet.notebook::before {
+        background-image: linear-gradient(
+          to bottom,
+          transparent calc(100% - 1px),
+          rgba(74, 108, 150, 0.5) calc(100% - 1px)
+        );
+        background-size: 100% var(--paper-line, 30px);
+        /* 늘린 높이(100vh)만큼 밀어, 줄이 시트 기준 48px 에서 시작하던 위치를 그대로 지킨다 */
+        background-position: 0 calc(100vh + 48px);
+      }
+
+      /* 한지: 밝은 아이보리 바탕에 닥나무 섬유 가닥. 섬유는 종이에 붙어 글자와 함께 움직인다.
+         섬유 그림은 가장자리가 이어지도록 그려 반복해도 이음매가 보이지 않는다. */
+      :root {
+        --hanji-fibers: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='260'%3E%3Cg fill='none' stroke='rgb(104,84,56)' stroke-linecap='round'%3E%3Cpath d='M344 246Q348 250 353 249' stroke-opacity='0.34' stroke-width='0.7'/%3E%3Cpath d='M111 158Q113 168 106 176' stroke-opacity='0.29' stroke-width='0.6'/%3E%3Cpath d='M260 -1Q260 11 257 24' stroke-opacity='0.26' stroke-width='0.4'/%3E%3Cpath d='M260 259Q260 271 257 284' stroke-opacity='0.26' stroke-width='0.4'/%3E%3Cpath d='M10 121Q9 129 15 134' stroke-opacity='0.30' stroke-width='0.6'/%3E%3Cpath d='M85 6Q91 9 98 12' stroke-opacity='0.38' stroke-width='0.7'/%3E%3Cpath d='M65 232Q53 236 50 249' stroke-opacity='0.34' stroke-width='0.7'/%3E%3Cpath d='M127 -5Q136 5 150 7' stroke-opacity='0.33' stroke-width='0.6'/%3E%3Cpath d='M127 255Q136 265 150 267' stroke-opacity='0.33' stroke-width='0.6'/%3E%3Cpath d='M191 127Q185 140 191 152' stroke-opacity='0.28' stroke-width='0.8'/%3E%3Cpath d='M324 120Q314 119 306 124' stroke-opacity='0.30' stroke-width='0.5'/%3E%3Cpath d='M117 182Q112 185 106 185' stroke-opacity='0.37' stroke-width='0.5'/%3E%3Cpath d='M345 184Q342 192 344 201' stroke-opacity='0.31' stroke-width='0.5'/%3E%3Cpath d='M75 133Q77 147 65 156' stroke-opacity='0.35' stroke-width='0.7'/%3E%3Cpath d='M327 50Q337 54 348 54' stroke-opacity='0.26' stroke-width='0.5'/%3E%3Cpath d='M315 28Q309 34 300 35' stroke-opacity='0.25' stroke-width='0.8'/%3E%3Cpath d='M152 186Q156 189 156 194' stroke-opacity='0.33' stroke-width='0.4'/%3E%3Cpath d='M-16 7Q-6 4 5 8' stroke-opacity='0.35' stroke-width='0.5'/%3E%3Cpath d='M344 7Q354 4 365 8' stroke-opacity='0.35' stroke-width='0.5'/%3E%3Cpath d='M66 180Q73 186 81 182' stroke-opacity='0.24' stroke-width='0.4'/%3E%3Cpath d='M124 160Q135 161 144 167' stroke-opacity='0.22' stroke-width='0.6'/%3E%3Cpath d='M276 192Q263 196 258 209' stroke-opacity='0.33' stroke-width='0.6'/%3E%3Cpath d='M81 172Q88 173 94 176' stroke-opacity='0.36' stroke-width='0.5'/%3E%3Cpath d='M211 102Q216 111 226 110' stroke-opacity='0.26' stroke-width='0.6'/%3E%3Cpath d='M151 5Q162 3 167 12' stroke-opacity='0.23' stroke-width='0.5'/%3E%3Cpath d='M35 165Q26 160 17 166' stroke-opacity='0.38' stroke-width='0.5'/%3E%3Cpath d='M160 65Q153 72 153 82' stroke-opacity='0.33' stroke-width='0.5'/%3E%3Cpath d='M152 137Q156 137 160 138' stroke-opacity='0.24' stroke-width='0.7'/%3E%3Cpath d='M87 26Q92 28 95 33' stroke-opacity='0.30' stroke-width='0.6'/%3E%3Cpath d='M112 167Q105 165 100 170' stroke-opacity='0.34' stroke-width='0.6'/%3E%3Cpath d='M184 151Q185 155 186 160' stroke-opacity='0.25' stroke-width='0.4'/%3E%3Cpath d='M289 95Q280 96 272 99' stroke-opacity='0.27' stroke-width='0.8'/%3E%3Cpath d='M134 5Q145 6 153 11' stroke-opacity='0.35' stroke-width='0.7'/%3E%3Cpath d='M6 117Q9 125 6 133' stroke-opacity='0.31' stroke-width='0.4'/%3E%3Cpath d='M102 97Q113 104 126 103' stroke-opacity='0.25' stroke-width='0.6'/%3E%3Cpath d='M141 120Q150 129 148 141' stroke-opacity='0.24' stroke-width='0.4'/%3E%3Cpath d='M306 167Q306 182 292 187' stroke-opacity='0.33' stroke-width='0.7'/%3E%3Cpath d='M260 129Q258 137 262 144' stroke-opacity='0.26' stroke-width='0.6'/%3E%3Cpath d='M172 248Q160 245 150 253' stroke-opacity='0.27' stroke-width='0.5'/%3E%3Cpath d='M176 67Q168 72 168 81' stroke-opacity='0.31' stroke-width='0.7'/%3E%3Cpath d='M35 93Q47 97 58 104' stroke-opacity='0.23' stroke-width='0.4'/%3E%3Cpath d='M322 -3Q333 -2 340 5' stroke-opacity='0.26' stroke-width='0.7'/%3E%3Cpath d='M322 257Q333 258 340 265' stroke-opacity='0.26' stroke-width='0.7'/%3E%3Cpath d='M245 114Q253 118 262 120' stroke-opacity='0.37' stroke-width='0.7'/%3E%3Cpath d='M35 134Q38 146 49 149' stroke-opacity='0.29' stroke-width='0.7'/%3E%3Cpath d='M145 -1Q148 11 140 20' stroke-opacity='0.29' stroke-width='0.4'/%3E%3Cpath d='M145 259Q148 271 140 280' stroke-opacity='0.29' stroke-width='0.4'/%3E%3Cpath d='M214 229Q214 235 214 241' stroke-opacity='0.28' stroke-width='0.7'/%3E%3Cpath d='M337 183Q329 186 321 185' stroke-opacity='0.34' stroke-width='0.7'/%3E%3Cpath d='M274 222Q273 227 270 233' stroke-opacity='0.33' stroke-width='0.8'/%3E%3Cpath d='M229 3Q220 7 218 16' stroke-opacity='0.32' stroke-width='0.7'/%3E%3Cpath d='M6 -15Q-3 -7 -1 5' stroke-opacity='0.36' stroke-width='0.4'/%3E%3Cpath d='M6 245Q-3 253 -1 265' stroke-opacity='0.36' stroke-width='0.4'/%3E%3Cpath d='M366 -15Q357 -7 359 5' stroke-opacity='0.36' stroke-width='0.4'/%3E%3Cpath d='M366 245Q357 253 359 265' stroke-opacity='0.36' stroke-width='0.4'/%3E%3Cpath d='M294 199Q289 203 286 208' stroke-opacity='0.25' stroke-width='0.7'/%3E%3Cpath d='M50 159Q55 165 61 171' stroke-opacity='0.29' stroke-width='0.5'/%3E%3Cpath d='M348 19Q346 23 348 27' stroke-opacity='0.33' stroke-width='0.7'/%3E%3Cpath d='M175 175Q179 181 184 186' stroke-opacity='0.22' stroke-width='0.4'/%3E%3Cpath d='M271 45Q264 53 255 59' stroke-opacity='0.33' stroke-width='0.7'/%3E%3Cpath d='M311 35Q313 40 315 45' stroke-opacity='0.27' stroke-width='0.4'/%3E%3Cpath d='M201 -9Q201 -1 199 6' stroke-opacity='0.29' stroke-width='0.7'/%3E%3Cpath d='M201 251Q201 259 199 266' stroke-opacity='0.29' stroke-width='0.7'/%3E%3Cpath d='M111 169Q105 176 109 185' stroke-opacity='0.23' stroke-width='0.7'/%3E%3Cpath d='M86 141Q73 165 69 191' stroke-opacity='0.29' stroke-width='0.5'/%3E%3Cpath d='M301 67Q279 69 257 68' stroke-opacity='0.45' stroke-width='0.8'/%3E%3Cpath d='M230 39Q198 52 168 67' stroke-opacity='0.43' stroke-width='0.9'/%3E%3Cpath d='M23 197Q60 211 61 250' stroke-opacity='0.45' stroke-width='0.8'/%3E%3Cpath d='M259 228Q225 243 188 246' stroke-opacity='0.44' stroke-width='0.8'/%3E%3Cpath d='M-23 229Q-4 229 9 243' stroke-opacity='0.47' stroke-width='0.8'/%3E%3Cpath d='M337 229Q356 229 369 243' stroke-opacity='0.47' stroke-width='0.8'/%3E%3Cpath d='M226 78Q242 104 247 135' stroke-opacity='0.40' stroke-width='0.9'/%3E%3Cpath d='M326 177Q274 169 248 215' stroke-opacity='0.41' stroke-width='0.6'/%3E%3Cpath d='M310 -9Q288 29 292 73' stroke-opacity='0.32' stroke-width='1.0'/%3E%3Cpath d='M310 251Q288 289 292 333' stroke-opacity='0.32' stroke-width='1.0'/%3E%3Cpath d='M206 74Q186 71 176 89' stroke-opacity='0.30' stroke-width='1.0'/%3E%3Cpath d='M148 39Q122 46 112 71' stroke-opacity='0.29' stroke-width='0.9'/%3E%3Cpath d='M16 187Q-13 180 -30 205' stroke-opacity='0.38' stroke-width='1.1'/%3E%3Cpath d='M376 187Q347 180 330 205' stroke-opacity='0.38' stroke-width='1.1'/%3E%3Cpath d='M111 20Q146 9 177 27' stroke-opacity='0.36' stroke-width='0.9'/%3E%3Cpath d='M56 11Q57 60 102 79' stroke-opacity='0.46' stroke-width='0.7'/%3E%3Cpath d='M166 135Q153 167 145 201' stroke-opacity='0.40' stroke-width='1.1'/%3E%3Cpath d='M183 112Q216 129 236 162' stroke-opacity='0.48' stroke-width='0.8'/%3E%3Cpath d='M197 3Q208 34 184 56' stroke-opacity='0.40' stroke-width='0.9'/%3E%3Cpath d='M22 163Q11 191 -9 212' stroke-opacity='0.42' stroke-width='0.9'/%3E%3Cpath d='M382 163Q371 191 351 212' stroke-opacity='0.42' stroke-width='0.9'/%3E%3Cpath d='M8 16Q-26 32 -62 24' stroke-opacity='0.37' stroke-width='0.9'/%3E%3Cpath d='M368 16Q334 32 298 24' stroke-opacity='0.37' stroke-width='0.9'/%3E%3Cpath d='M115 95Q122 118 135 139' stroke-opacity='0.34' stroke-width='0.7'/%3E%3Cpath d='M278 7Q263 36 235 54' stroke-opacity='0.32' stroke-width='1.0'/%3E%3Cpath d='M86 49Q82 81 53 94' stroke-opacity='0.34' stroke-width='0.7'/%3E%3Cpath d='M-60 114Q-20 127 10 155' stroke-opacity='0.41' stroke-width='1.0'/%3E%3Cpath d='M300 114Q340 127 370 155' stroke-opacity='0.41' stroke-width='1.0'/%3E%3Cpath d='M162 59Q169 78 159 96' stroke-opacity='0.44' stroke-width='1.0'/%3E%3Cpath d='M66 72Q34 101 32 143' stroke-opacity='0.35' stroke-width='0.6'/%3E%3Cpath d='M105 206Q118 226 127 247' stroke-opacity='0.36' stroke-width='0.7'/%3E%3Cpath d='M331 41Q315 35 302 46' stroke-opacity='0.48' stroke-width='0.8'/%3E%3Cpath d='M342 -19Q320 -10 312 12' stroke-opacity='0.41' stroke-width='0.8'/%3E%3Cpath d='M342 241Q320 250 312 272' stroke-opacity='0.41' stroke-width='0.8'/%3E%3Cpath d='M104 89Q125 96 147 98' stroke-opacity='0.34' stroke-width='1.0'/%3E%3Cpath d='M16 235Q-23 224 -53 252' stroke-opacity='0.46' stroke-width='0.8'/%3E%3Cpath d='M376 235Q337 224 307 252' stroke-opacity='0.46' stroke-width='0.8'/%3E%3Cpath d='M5 194Q13 213 28 226' stroke-opacity='0.38' stroke-width='0.7'/%3E%3Cpath d='M-22 159Q-13 186 13 195' stroke-opacity='0.38' stroke-width='1.0'/%3E%3Cpath d='M338 159Q347 186 373 195' stroke-opacity='0.38' stroke-width='1.0'/%3E%3C/g%3E%3C/svg%3E");
+      }
+      /* 모눈: 한 칸 = 글자 한 줄. 가로줄은 줄 공책과 같은 자리, 세로줄은 글자 시작 여백(84px)에서 시작한다. */
+      .paper-sheet.grid::before {
+        background-image:
+          linear-gradient(to bottom, transparent calc(100% - 1px), rgba(74, 108, 150, 0.45) calc(100% - 1px)),
+          linear-gradient(to right, rgba(74, 108, 150, 0.45) 1px, transparent 1px);
+        background-size: var(--paper-line, 30px) var(--paper-line, 30px);
+        background-position: 84px calc(100vh + 48px);
+      }
+      .paper-sheet.hanji::before {
+        background-color: #e4dac3;
+        background-image: var(--hanji-fibers);
+        background-size: 360px 260px;
       }
 
       .ink-text {
@@ -562,7 +664,109 @@
         right: 22px;
         bottom: calc(100% + 18px);
         z-index: 12;
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
       }
+      /* 종이 바꾸기: 누를 때마다 민무늬 ↔ 줄 공책 */
+      .paper-toggle-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        width: 64px;
+        padding: 4px;
+        border: 0;
+        background: transparent;
+        color: #dfcfad;
+        cursor: pointer;
+        font: 10px "Gowun Batang", serif;
+        letter-spacing: 0.06em;
+      }
+      .paper-swatch {
+        width: 38px;
+        height: 48px;
+        border: 1px solid #b3a17e;
+        border-radius: 2px;
+        background-color: #d6c6a4;
+        box-shadow: 2px 4px 7px #0007;
+        transition: transform 0.18s ease;
+      }
+      .paper-swatch[data-paper="notebook"] {
+        background-image: linear-gradient(
+          to bottom,
+          transparent calc(100% - 1px),
+          rgba(74, 108, 150, 0.7) calc(100% - 1px)
+        );
+        background-size: 100% 7px;
+        background-position: 0 6px;
+      }
+      .paper-swatch[data-paper="grid"] {
+        background-image:
+          linear-gradient(to bottom, transparent calc(100% - 1px), rgba(74, 108, 150, 0.7) calc(100% - 1px)),
+          linear-gradient(to right, rgba(74, 108, 150, 0.7) 1px, transparent 1px);
+        background-size: 7px 7px;
+        background-position: 3px 6px;
+      }
+      .paper-swatch[data-paper="wongoji"] {
+        background-image:
+          linear-gradient(to bottom, rgba(170, 70, 50, 0.75) 0 1px, transparent 1px 6px, rgba(170, 70, 50, 0.75) 6px 7px, transparent 7px),
+          linear-gradient(to bottom, transparent 7px, #d6c6a4 7px),
+          linear-gradient(to right, rgba(170, 70, 50, 0.75) 1px, transparent 1px);
+        background-size: 100% 9px, 100% 9px, 6px 9px;
+        background-position: 3px 5px;
+      }
+      .paper-swatch[data-paper="letter"] {
+        background-color: #e2cfa6;
+        box-shadow: inset 0 0 8px rgba(120, 80, 30, 0.5), 2px 4px 7px #0007;
+      }
+      .paper-swatch[data-paper="hanji"] {
+        background-color: #ece3cf;
+        background-image: var(--hanji-fibers);
+        background-size: 72px 52px;
+      }
+      .paper-toggle-btn:hover .paper-swatch,
+      .paper-toggle-btn[aria-expanded="true"] .paper-swatch {
+        transform: translateY(-3px) rotate(3deg);
+      }
+      .paper-toggle-btn:focus-visible { outline: 2px solid #e1bd77; outline-offset: 4px; }
+
+      /* 종이 견본 판: 글자 크기 판처럼 버튼 위에 열린다. */
+      .paper-style-panel {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 76px;
+        padding: 13px 15px 12px;
+        border: 1px solid #78674c;
+        border-radius: 6px;
+        background: #252820;
+        color: #e3d3b1;
+        box-shadow: 0 6px 20px #0006;
+        cursor: default;
+      }
+      .paper-style-heading { font-size: 12px; margin-bottom: 10px; }
+      /* 견본은 한 줄에 세 개씩. 종이가 늘어도 판 너비는 그대로라 좁은 화면에서도 잘리지 않는다. */
+      .paper-style-options { display: grid; grid-template-columns: repeat(3, 58px); gap: 8px; }
+      .paper-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 58px;
+        padding: 6px 2px 5px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        background: transparent;
+        color: #d8c9a8;
+        cursor: pointer;
+        font: 11px "Gowun Batang", serif;
+      }
+      .paper-option:hover { background: #2f3228; }
+      .paper-option[aria-pressed="true"] {
+        border-color: #c5a466;
+        color: #f0d9a4;
+      }
+      .paper-option:focus-visible { outline: 2px solid #e1bd77; outline-offset: 2px; }
       .ink-bottle-btn {
         display: flex;
         flex-direction: column;
@@ -638,9 +842,12 @@
       @media (max-width: 480px) {
         .ink-station { right: 12px; }
         .ink-size-panel { width: 180px; right: 68px; }
+        /* 판 너비(222px)+바깥 여백(12px)이 화면을 넘지 않도록, 좁은 화면에서는 오른쪽 간격을 줄인다 */
+        .paper-style-panel { right: max(0px, min(68px, calc(100vw - 234px))); }
       }
       @media (prefers-reduced-motion: reduce) {
         .ink-bottle { transition: none; }
+        .paper-swatch { transition: none; }
       }
 
       /* ================= 3. 하단 안내 줄 ================= */
@@ -710,6 +917,35 @@
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
       <div class="lamp-assembly" id="lampAssembly">
         <div class="ink-station" id="inkStation">
+          <button type="button" class="paper-toggle-btn" id="paperToggleBtn"
+            aria-label="종이 양식 고르기 (지금: 민무늬)"
+            aria-expanded="false" aria-controls="paperStylePanel">
+            <span class="paper-swatch" id="paperToggleSwatch" data-paper="plain" aria-hidden="true"></span>
+            <span aria-hidden="true">종이 양식</span>
+          </button>
+          <div class="paper-style-panel" id="paperStylePanel" role="group" aria-labelledby="paperStyleHeading" hidden>
+            <div class="paper-style-heading" id="paperStyleHeading">종이 양식</div>
+            <div class="paper-style-options">
+              <button type="button" class="paper-option" data-paper="plain" aria-pressed="true">
+                <span class="paper-swatch" data-paper="plain" aria-hidden="true"></span>민무늬
+              </button>
+              <button type="button" class="paper-option" data-paper="notebook" aria-pressed="false">
+                <span class="paper-swatch" data-paper="notebook" aria-hidden="true"></span>줄 공책
+              </button>
+              <button type="button" class="paper-option" data-paper="grid" aria-pressed="false">
+                <span class="paper-swatch" data-paper="grid" aria-hidden="true"></span>모눈
+              </button>
+              <button type="button" class="paper-option" data-paper="hanji" aria-pressed="false">
+                <span class="paper-swatch" data-paper="hanji" aria-hidden="true"></span>한지
+              </button>
+              <button type="button" class="paper-option" data-paper="letter" aria-pressed="false">
+                <span class="paper-swatch" data-paper="letter" aria-hidden="true"></span>편지지
+              </button>
+              <button type="button" class="paper-option" data-paper="wongoji" aria-pressed="false">
+                <span class="paper-swatch" data-paper="wongoji" aria-hidden="true"></span>원고지
+              </button>
+            </div>
+          </div>
           <button type="button" class="ink-bottle-btn" id="inkBottleBtn"
             aria-label="잉크병: 글자 크기 조절" aria-expanded="false" aria-controls="inkSizePanel">
             <span class="ink-bottle" aria-hidden="true"><span class="ink-bottle-label">INK</span></span>
@@ -1388,10 +1624,48 @@
         reducedMotionQuery.addListener(handleReducedMotionChange);
       }
 
+      // 원고지: 글자(띄어쓰기·문장부호 포함) 하나를 칸 하나에 넣는다. 줄바꿈은 <br> 로 그린다.
+      // 키마다 전체를 다시 만들지 않도록, 지난번에 그린 글자와 처음 달라지는 곳부터만 바꾼다.
+      // 글자 하나 = 노드 하나(칸 또는 <br>)라서 글자 위치와 노드 위치가 같다.
+      let wongojiChars = null; // 원고지로 그린 글자 목록. 원고지가 아닐 때는 null.
+
+      function makeWongojiNode(ch) {
+        if (ch === "\n") return document.createElement("br");
+        const cell = document.createElement("span");
+        cell.className = "wg-cell";
+        if (ch !== " ") cell.textContent = ch;
+        return cell;
+      }
+
+      function renderWongoji(text) {
+        const chars = Array.from(text);
+        if (!wongojiChars) {
+          // 다른 종이에서 막 바꿨으면 기존 글(텍스트 한 덩어리)을 비우고 처음부터 그린다.
+          committedEl.replaceChildren();
+          wongojiChars = [];
+        }
+        let same = 0;
+        const limit = Math.min(chars.length, wongojiChars.length);
+        while (same < limit && chars[same] === wongojiChars[same]) same += 1;
+
+        while (committedEl.childNodes.length > same) committedEl.lastChild.remove();
+        if (same < chars.length) {
+          const frag = document.createDocumentFragment();
+          for (let i = same; i < chars.length; i += 1) frag.appendChild(makeWongojiNode(chars[i]));
+          committedEl.appendChild(frag);
+        }
+        wongojiChars = chars;
+      }
+
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        if (paperSheet.classList.contains("wongoji")) {
+          renderWongoji(committedStr);
+        } else {
+          wongojiChars = null;
+          committedEl.textContent = committedStr;
+        }
         composingEl.textContent = comp;
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
@@ -1557,25 +1831,91 @@
         inkBottleBtn.setAttribute("aria-expanded", String(open));
       }
       inkBottleBtn.addEventListener("click", () => {
+        setPaperPanelOpen(false);
         setInkPanelOpen(inkSizePanel.hidden);
       });
+      // 글자 크기와 종이 양식에 맞춰 줄 간격과 원고지 칸 크기·칸 수를 정한다.
+      function applyPaperMetrics() {
+        const size = Number(inkSizeSlider.value);
+        const wongoji = paperSheet.classList.contains("wongoji");
+        const cell = Math.round(size * 1.6);
+        const pitch = Math.round(size * 2.1);
+        paperSheet.style.fontSize = `${size}px`;
+        paperSheet.style.lineHeight = `${wongoji ? pitch : size * 5 / 3}px`;
+        paperSheet.style.setProperty("--paper-line", `${size * 5 / 3}px`);
+        paperSheet.style.setProperty("--wg-cell", `${cell}px`);
+        paperSheet.style.setProperty("--wg-pitch", `${pitch}px`);
+        if (wongoji) {
+          // 오른쪽 끝에 잘린 칸이 생기지 않도록, 글이 들어가는 폭에 꽉 차는 칸 수만 그린다.
+          const cs = getComputedStyle(paperSheet);
+          const textWidth = paperSheet.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          paperSheet.style.setProperty("--wg-cols", String(Math.max(1, Math.floor(textWidth / cell))));
+        }
+      }
       inkSizeSlider.addEventListener("input", () => {
         const size = Number(inkSizeSlider.value);
-        paperSheet.style.fontSize = `${size}px`;
-        paperSheet.style.lineHeight = `${size * 5 / 3}px`;
+        applyPaperMetrics();
         cursorAnchor.style.height = `${size + 2}px`;
         inkSizeValue.value = `${size}px`;
         inkSizeSlider.setAttribute("aria-valuetext", `${size}픽셀`);
         updateScreen();
       });
       document.addEventListener("click", (e) => {
-        if (!inkStation.contains(e.target)) setInkPanelOpen(false);
+        if (!inkStation.contains(e.target)) {
+          setInkPanelOpen(false);
+          setPaperPanelOpen(false);
+        }
+      });
+
+      // 종이 양식: 겉모습만 바꾸고 글 내용과 조합 상태는 건드리지 않는다.
+      const PAPER_NAMES = { plain: "민무늬", notebook: "줄 공책", grid: "모눈", hanji: "한지", letter: "편지지", wongoji: "원고지" };
+      const paperToggleBtn = document.getElementById("paperToggleBtn");
+      const paperToggleSwatch = document.getElementById("paperToggleSwatch");
+      const paperStylePanel = document.getElementById("paperStylePanel");
+      const paperOptions = paperStylePanel.querySelectorAll(".paper-option");
+
+      function setPaperPanelOpen(open) {
+        paperStylePanel.hidden = !open;
+        paperToggleBtn.setAttribute("aria-expanded", String(open));
+      }
+      function setPaper(kind) {
+        // 민무늬는 클래스 없이, 나머지 종이는 이름과 같은 클래스를 하나만 붙인다.
+        Object.keys(PAPER_NAMES).forEach((name) => {
+          if (name !== "plain") paperSheet.classList.toggle(name, kind === name);
+        });
+        paperViewport.dataset.paper = kind;
+        paperToggleSwatch.dataset.paper = kind;
+        paperToggleBtn.setAttribute("aria-label", `종이 양식 고르기 (지금: ${PAPER_NAMES[kind]})`);
+        paperOptions.forEach((opt) => {
+          opt.setAttribute("aria-pressed", String(opt.dataset.paper === kind));
+        });
+        // 원고지는 글자를 그리는 방식과 줄 간격이 달라서, 바꿀 때마다 다시 그린다.
+        applyPaperMetrics();
+        updateScreen();
+      }
+      paperToggleBtn.addEventListener("click", () => {
+        setInkPanelOpen(false);
+        const opening = paperStylePanel.hidden;
+        setPaperPanelOpen(opening);
+        if (opening) paperStylePanel.querySelector('[aria-pressed="true"]').focus();
+      });
+      paperOptions.forEach((opt) => {
+        opt.addEventListener("click", () => {
+          setPaper(opt.dataset.paper);
+          setPaperPanelOpen(false);
+          desk.focus();
+        });
       });
       inkStation.addEventListener("keydown", (e) => {
         // 스페이스/Enter/방향키를 종이 입력 대신 네이티브 컨트롤에 전달한다.
         e.stopPropagation();
         if (e.key === "Escape") {
           e.preventDefault();
+          if (!paperStylePanel.hidden) {
+            setPaperPanelOpen(false);
+            paperToggleBtn.focus();
+            return;
+          }
           setInkPanelOpen(false);
           inkBottleBtn.focus();
         }
@@ -1735,7 +2075,10 @@
       document.body.addEventListener("mousedown", () => sound.init(), {
         once: true,
       });
-      window.addEventListener("resize", () => updateScreen());
+      window.addEventListener("resize", () => {
+        applyPaperMetrics();
+        updateScreen();
+      });
 
       // 초기 실행
       updateScreen();
