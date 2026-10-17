@@ -17,6 +17,7 @@
     <style>
       :root {
         --lamp-x: 200px;
+        --paper-color: #d2c9b6;
       }
 
       * {
@@ -66,7 +67,7 @@
         position: relative;
         flex: 1;
         width: 100%;
-        background-color: #d2c9b6;
+        background-color: var(--paper-color);
         overflow: hidden;
         cursor: text;
       }
@@ -186,6 +187,27 @@
         z-index: 1;
         white-space: pre-wrap;
         word-break: break-all;
+        background-color: var(--paper-color);
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .maple-decor {
+        position: absolute;
+        top: 92px;
+        right: 54px;
+        z-index: 3;
+        width: 86px;
+        height: 86px;
+        color: #a54e2b;
+        opacity: 0.72;
+        transform: rotate(12deg);
+        pointer-events: none;
+        filter: drop-shadow(1px 2px 1px rgba(55, 28, 12, 0.2));
+      }
+
+      .maple-decor[hidden] {
+        display: none;
       }
 
       .ink-text {
@@ -230,12 +252,16 @@
       }
 
       .hud-btn {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
         background: none;
         border: none;
         color: rgba(175, 166, 148, 0.7);
         font-size: 20px;
         cursor: pointer;
-        padding: 4px 8px;
+        padding: 4px;
         transition: color 0.2s;
       }
       .hud-btn:hover {
@@ -664,6 +690,65 @@
         color: #c9c3b6;
         background: #23221f;
       }
+
+      @media print {
+        @page {
+          margin: 12mm;
+        }
+
+        body {
+          display: block;
+          min-height: auto;
+          overflow: visible;
+          background: #fff;
+        }
+
+        .desk {
+          width: 100%;
+          max-width: none;
+          height: auto;
+          overflow: visible;
+          background: #fff;
+          box-shadow: none;
+          border: 0;
+        }
+
+        .paper-viewport {
+          min-height: 0;
+          overflow: visible;
+          background: #fff;
+        }
+
+        .paper-texture,
+        .lighting-layer,
+        .type-impact-layer,
+        .top-hud,
+        .type-guide-container,
+        .lamp-assembly {
+          display: none !important;
+        }
+
+        .paper-sheet {
+          position: relative;
+          min-height: 240mm;
+          padding: 18mm;
+          color: #1e1a15;
+          transform: none !important;
+        }
+
+        .paper-sheet::after {
+          content: "";
+          position: absolute;
+          inset: 8mm;
+          border: 1px dashed #777;
+          pointer-events: none;
+        }
+
+        #cursorAnchor,
+        #composingText {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -671,13 +756,27 @@
       <!-- 1. 종이 및 타자기 인쇄 영역 -->
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
+        <svg class="maple-decor" id="mapleDecor" viewBox="0 0 100 100" hidden aria-hidden="true">
+          <path fill="currentColor" d="M50 4 42 29 27 18 30 36 9 32 25 49 11 59 33 60 27 82 45 68 50 96 55 68 73 82 67 60 89 59 75 49 91 32 70 36 73 18 58 29z" />
+          <path d="M50 44v42M50 58 34 70M50 58l16 12" fill="none" stroke="#6c321e" stroke-width="3" stroke-linecap="round" />
+        </svg>
         <div class="type-impact-layer" id="typeImpactLayer" aria-hidden="true"></div>
 
         <!-- 상단 HUD -->
         <div class="top-hud">
           <div class="hud-left">
-            <button class="hud-btn" id="clearBtn" title="처음 상태로 리셋">
+            <button class="hud-btn" id="clearBtn" title="처음 상태로 리셋" aria-label="처음 상태로 리셋">
               ←
+            </button>
+            <button class="hud-btn" id="printBtn" title="현재 메모 출력" aria-label="현재 메모 출력">
+              ⎙
+            </button>
+            <button class="hud-btn" id="paperColorBtn" title="편지지 색감 고르기" aria-label="편지지 색감 고르기">
+              ◐
+            </button>
+            <input id="paperColorPicker" type="color" value="#d2c9b6" hidden />
+            <button class="hud-btn" id="mapleBtn" title="단풍 이미지 넣기" aria-label="단풍 이미지 넣기" aria-pressed="false">
+              🍁
             </button>
             <span class="wordmark">Platen</span>
           </div>
@@ -1722,6 +1821,33 @@
         sound.init();
         stopDemo();
         startDemo(true);
+        desk.focus();
+      });
+
+      document.getElementById("printBtn").addEventListener("click", () => {
+        window.print();
+      });
+
+      const paperColorBtn = document.getElementById("paperColorBtn");
+      const paperColorPicker = document.getElementById("paperColorPicker");
+      paperColorBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        paperColorPicker.click();
+      });
+      paperColorPicker.addEventListener("input", () => {
+        document.documentElement.style.setProperty(
+          "--paper-color",
+          paperColorPicker.value,
+        );
+      });
+
+      const mapleBtn = document.getElementById("mapleBtn");
+      const mapleDecor = document.getElementById("mapleDecor");
+      mapleBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isVisible = mapleDecor.hidden;
+        mapleDecor.hidden = !isVisible;
+        mapleBtn.setAttribute("aria-pressed", String(isVisible));
         desk.focus();
       });
 
