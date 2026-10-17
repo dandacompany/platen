@@ -551,6 +551,13 @@
         cursor: pointer;
       }
 
+      .save-status { color: #c9c3b6; font-size: 11px; }
+      .storage-notice {
+        padding: 0 28px 4px;
+        color: #9e998e;
+        font-size: 11px;
+      }
+
       .font-select:focus-visible {
         outline: 2px solid #ecc482;
         outline-offset: 3px;
@@ -808,7 +815,9 @@
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
+          <span class="save-status" id="saveStatus" role="status" aria-live="polite">입력하면 자동 저장</span>
         </div>
+        <p class="storage-notice">글은 이 브라우저에만 저장됩니다. 공용 PC에서는 글이 남을 수 있습니다.</p>
 
         <!-- 3. 하단 안내 줄 -->
         <div class="footer-hint">
@@ -1306,6 +1315,52 @@
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
 
+      const DRAFT_KEY = "platen.draft.v1";
+      const saveStatus = document.getElementById("saveStatus");
+      let hasSavedDraft = false;
+
+      // 조합 상태도 보관해 복원 후 마지막 한글을 이어서 입력할 수 있다.
+      function saveDraft() {
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            version: 1,
+            committed: committedStr,
+            cho: automata.cho,
+            jung: automata.jung,
+            jong: automata.jong,
+          }));
+          hasSavedDraft = true;
+          saveStatus.textContent = "저장됨 · 이 브라우저";
+        } catch (error) {
+          saveStatus.textContent = "자동 저장 불가 · 창을 닫기 전 글을 보관하세요";
+        }
+      }
+
+      function restoreDraft() {
+        try {
+          const raw = localStorage.getItem(DRAFT_KEY);
+          if (raw === null) return false;
+          const draft = JSON.parse(raw);
+          if (!draft || draft.version !== 1 || typeof draft.committed !== "string" ||
+              !["", ...CHO].includes(draft.cho) ||
+              !["", ...JUNG].includes(draft.jung) ||
+              !JONG.includes(draft.jong) ||
+              (draft.jong && (!draft.cho || !draft.jung))) {
+            throw new Error("Invalid draft");
+          }
+          committedStr = draft.committed;
+          automata.cho = draft.cho;
+          automata.jung = draft.jung;
+          automata.jong = draft.jong;
+          hasSavedDraft = true;
+          saveStatus.textContent = "복원됨 · 이 브라우저";
+          return true;
+        } catch (error) {
+          saveStatus.textContent = "저장 글 불러오기 불가 · 새 입력 시 저장을 다시 시도합니다";
+          return false;
+        }
+      }
+
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
       const composingEl = document.getElementById("composingText");
@@ -1440,42 +1495,47 @@
       document.fonts.addEventListener("loadingdone", () => updateScreen());
 
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
-      function handleKey(k) {
-        if (k === "BACK") {
+      function handleKey(k, persist = true) {
+        try {
+          if (k === "BACK") {
+            sound.playKeyClick(false);
+            triggerStrike();
+            if (!automata.backspace()) {
+              committedStr = committedStr.slice(0, -1);
+            }
+            updateScreen();
+            return;
+          }
+
+          if (k === " ") {
+            sound.playKeyClick(true);
+            triggerStrike();
+            committedStr += automata.flush() + " ";
+            updateScreen();
+            return;
+          }
+
+          if (k === "Enter") {
+            sound.playReturnBell();
+            triggerStrike();
+            committedStr += automata.flush() + "\n";
+            updateScreen();
+            return;
+          }
+
           sound.playKeyClick(false);
           triggerStrike();
-          if (!automata.backspace()) {
-            committedStr = committedStr.slice(0, -1);
+
+          const res = automata.inputJamo(k);
+          if (res.committed) {
+            committedStr += res.committed;
           }
           updateScreen();
-          return;
+          triggerTypeImpact();
+        } finally {
+          // 사용자 입력만 동기 저장해 즉시 새로고침해도 남긴다.
+          if (persist) saveDraft();
         }
-
-        if (k === " ") {
-          sound.playKeyClick(true);
-          triggerStrike();
-          committedStr += automata.flush() + " ";
-          updateScreen();
-          return;
-        }
-
-        if (k === "Enter") {
-          sound.playReturnBell();
-          triggerStrike();
-          committedStr += automata.flush() + "\n";
-          updateScreen();
-          return;
-        }
-
-        sound.playKeyClick(false);
-        triggerStrike();
-
-        const res = automata.inputJamo(k);
-        if (res.committed) {
-          committedStr += res.committed;
-        }
-        updateScreen();
-        triggerTypeImpact();
       }
 
       /* =========================================================================
@@ -1676,7 +1736,7 @@
         }
 
         const key = DEMO_SEQUENCE[demoIdx++];
-        handleKey(key);
+        handleKey(key, false);
 
         let delay = 145 + Math.random() * 70;
         if (key === "Enter") delay = 420;
@@ -1694,11 +1754,13 @@
 
       function startDemo(resetText = false) {
         if (resetText) {
+          if (hasSavedDraft && !window.confirm("저장된 글을 지우고 처음 상태로 돌아갈까요?")) return;
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
           updateScreen();
+          if (hasSavedDraft) saveDraft();
         }
         isDemoRunning = true;
         demoToggleBtn.textContent = "자동 타이핑 중 ⏸";
@@ -1738,9 +1800,11 @@
       window.addEventListener("resize", () => updateScreen());
 
       // 초기 실행
+      const restoredDraft = restoreDraft();
       updateScreen();
       desk.focus();
-      startDemo(false);
+      if (restoredDraft) stopDemo();
+      else startDemo(false);
     </script>
   </body>
 </html>
