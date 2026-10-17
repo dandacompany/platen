@@ -296,6 +296,93 @@
         outline: none;
       }
 
+      .archive-btn {
+        border: 1px solid rgba(178, 151, 112, 0.5);
+        border-radius: 14px;
+        padding: 5px 12px;
+        background: rgba(178, 151, 112, 0.12);
+        color: #d6c5a7;
+        font-size: 12px;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .archive-btn:hover,
+      .archive-btn:focus-visible {
+        background: rgba(178, 151, 112, 0.28);
+        color: #fff0d3;
+        outline: none;
+      }
+
+      .tear-shred {
+        position: absolute;
+        left: 8%;
+        right: 8%;
+        bottom: 17%;
+        height: 42%;
+        z-index: 8;
+        border: 1px solid rgba(108, 83, 51, 0.52);
+        background: #d2c9b6;
+        box-shadow: 0 18px 28px rgba(0, 0, 0, 0.38);
+        transform-origin: bottom center;
+        animation: tearAway 720ms cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
+        pointer-events: none;
+      }
+
+      .tear-shred::after {
+        content: "보관 중…";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(48, 40, 30, 0.62);
+        font: 18px "Gowun Batang", serif;
+      }
+
+      @keyframes tearAway {
+        0% { opacity: 1; transform: translateY(0) rotate(0) scaleY(1); clip-path: polygon(0 0, 100% 0, 97% 100%, 2% 100%); }
+        55% { opacity: 1; transform: translateY(-12px) rotate(-2deg) scaleY(0.94); }
+        100% { opacity: 0; transform: translateY(75%) rotate(5deg) scaleY(0.42); clip-path: polygon(0 0, 100% 0, 75% 100%, 21% 100%); }
+      }
+
+      .archive-backdrop {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 70px 28px 36px;
+        background: rgba(12, 11, 9, 0.72);
+        z-index: 21;
+      }
+
+      .archive-backdrop[hidden] { display: none; }
+
+      .archive-panel {
+        width: min(100%, 570px);
+        max-height: 100%;
+        overflow: auto;
+        padding: 28px 30px 24px;
+        border: 1px solid #4d4233;
+        border-radius: 7px;
+        background: #24221d;
+        color: #e1d3ba;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      }
+
+      .archive-panel-head { display: flex; justify-content: space-between; align-items: start; gap: 18px; }
+      .archive-panel h2 { font: 24px "Gowun Batang", serif; color: #f0dfbd; }
+      .archive-panel p { margin-top: 5px; color: #9f9584; font-size: 12px; }
+      .archive-close { border: 0; background: transparent; color: #b9ab92; font-size: 22px; cursor: pointer; }
+      .archive-list { display: grid; gap: 10px; margin-top: 22px; min-width: 0; }
+      .archive-empty { padding: 28px 8px; color: #9f9584; text-align: center; font: 15px "Gowun Batang", serif; }
+      .archive-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-width: 0; padding: 13px 14px; border: 1px solid #464035; border-radius: 5px; background: #2c2923; }
+      .archive-item-copy { flex: 1; min-width: 0; }
+      .archive-item-date { color: #c4a873; font: 11px "Courier Prime", monospace; }
+      .archive-item-text { overflow: hidden; margin-top: 5px; color: #e4dac6; white-space: nowrap; text-overflow: ellipsis; font: 14px "Gowun Batang", serif; }
+      .archive-restore { flex-shrink: 0; border: 1px solid #776143; border-radius: 4px; padding: 6px 10px; background: #403527; color: #ecd29e; font-size: 12px; font-family: inherit; cursor: pointer; }
+      .archive-restore:hover, .archive-restore:focus-visible { background: #59472e; outline: none; }
+
       .summary-backdrop {
         position: absolute;
         inset: 0;
@@ -395,8 +482,11 @@
         .top-hud { left: 12px; right: 12px; }
         .hud-right { gap: 7px; }
         .char-counter { display: none; }
+        .archive-btn { padding-inline: 8px; }
         .summary-backdrop { padding: 62px 14px 28px; }
         .summary-card { padding: 28px 24px 20px; }
+        .archive-backdrop { padding: 62px 14px 28px; }
+        .archive-panel { padding-inline: 20px; }
       }
 
       /* 타자기 T자 활자 가이드 */
@@ -805,6 +895,8 @@
           </div>
           <div class="hud-right">
             <button class="summary-btn" id="summaryBtn" type="button">요약</button>
+            <button class="archive-btn" id="archiveBtn" type="button">찢어 보관</button>
+            <button class="archive-btn" id="archiveOpenBtn" type="button">보관함</button>
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
@@ -834,6 +926,19 @@
               <button class="summary-nav" id="summaryNextBtn" type="button">다음 →</button>
               <button class="summary-save" id="summarySaveBtn" type="button">이미지로 저장</button>
             </div>
+          </section>
+        </div>
+
+        <div class="archive-backdrop" id="archiveBackdrop" hidden>
+          <section class="archive-panel" aria-labelledby="archiveTitle">
+            <div class="archive-panel-head">
+              <div>
+                <h2 id="archiveTitle">찢어 보관한 메모</h2>
+                <p>종이를 찢어도 기억은 책상 서랍에 남아 있어요.</p>
+              </div>
+              <button class="archive-close" id="archiveCloseBtn" type="button" aria-label="보관함 닫기">×</button>
+            </div>
+            <div class="archive-list" id="archiveList"></div>
           </section>
         </div>
 
@@ -1470,6 +1575,11 @@
       const summaryPrevBtn = document.getElementById("summaryPrevBtn");
       const summaryNextBtn = document.getElementById("summaryNextBtn");
       const summarySaveBtn = document.getElementById("summarySaveBtn");
+      const archiveBtn = document.getElementById("archiveBtn");
+      const archiveOpenBtn = document.getElementById("archiveOpenBtn");
+      const archiveBackdrop = document.getElementById("archiveBackdrop");
+      const archiveCloseBtn = document.getElementById("archiveCloseBtn");
+      const archiveList = document.getElementById("archiveList");
       let summaryPages = [];
       let summaryIndex = 0;
 
@@ -1602,6 +1712,100 @@
         if (summaryIndex < summaryPages.length - 1) { summaryIndex += 1; renderSummaryPage(); }
       });
       summarySaveBtn.addEventListener("click", saveSummaryImage);
+
+      function readArchive() {
+        try {
+          const saved = JSON.parse(localStorage.getItem("platen-archive") || "[]");
+          return Array.isArray(saved) ? saved : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function writeArchive(items) {
+        try { localStorage.setItem("platen-archive", JSON.stringify(items)); } catch (error) {}
+      }
+
+      function renderArchive() {
+        const items = readArchive();
+        archiveList.replaceChildren();
+        if (!items.length) {
+          const empty = document.createElement("p");
+          empty.className = "archive-empty";
+          empty.textContent = "아직 서랍에 넣은 메모가 없어요.";
+          archiveList.appendChild(empty);
+          return;
+        }
+
+        items.forEach((item) => {
+          const row = document.createElement("article");
+          row.className = "archive-item";
+          const copy = document.createElement("div");
+          copy.className = "archive-item-copy";
+          const date = document.createElement("div");
+          date.className = "archive-item-date";
+          date.textContent = new Date(item.createdAt).toLocaleString("ko-KR", {
+            month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+          });
+          const text = document.createElement("div");
+          text.className = "archive-item-text";
+          text.textContent = item.text.replace(/\s+/g, " ");
+          copy.append(date, text);
+          const restore = document.createElement("button");
+          restore.className = "archive-restore";
+          restore.type = "button";
+          restore.textContent = "꺼내기";
+          restore.addEventListener("click", () => {
+            stopDemo();
+            committedStr = item.text;
+            automata.reset();
+            updateScreen();
+            closeArchive();
+          });
+          row.append(copy, restore);
+          archiveList.appendChild(row);
+        });
+      }
+
+      function openArchive() {
+        stopDemo();
+        renderArchive();
+        archiveBackdrop.hidden = false;
+        archiveCloseBtn.focus();
+      }
+
+      function closeArchive() {
+        archiveBackdrop.hidden = true;
+        desk.focus();
+      }
+
+      function archiveCurrentNote() {
+        const note = getNoteText();
+        if (!note) {
+          openArchive();
+          return;
+        }
+        stopDemo();
+        const items = readArchive();
+        items.unshift({ id: crypto.randomUUID?.() || String(Date.now()), text: note, createdAt: new Date().toISOString() });
+        writeArchive(items.slice(0, 12));
+        const shred = document.createElement("div");
+        shred.className = "tear-shred";
+        paperViewport.appendChild(shred);
+        setTimeout(() => {
+          committedStr = "";
+          automata.reset();
+          updateScreen();
+          shred.remove();
+        }, 670);
+      }
+
+      archiveBtn.addEventListener("click", archiveCurrentNote);
+      archiveOpenBtn.addEventListener("click", openArchive);
+      archiveCloseBtn.addEventListener("click", closeArchive);
+      archiveBackdrop.addEventListener("click", (event) => {
+        if (event.target === archiveBackdrop) closeArchive();
+      });
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1904,6 +2108,14 @@
           if (e.key === "Escape") {
             e.preventDefault();
             closeSummary();
+          }
+          return;
+        }
+
+        if (!archiveBackdrop.hidden) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            closeArchive();
           }
           return;
         }
