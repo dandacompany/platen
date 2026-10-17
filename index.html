@@ -1087,6 +1087,11 @@
           if (isConsonant) {
             if (!this.cho && !this.jung) {
               this.cho = ch;
+            } else if (!this.cho && this.jung) {
+              // 홀로 선 모음(ㅏ, ㅘ 등) 뒤의 자음은 모음을 확정하고 새 글자의 초성이 된다
+              committed = this.jung;
+              this.jung = "";
+              this.cho = ch;
             } else if (this.cho && !this.jung) {
               committed = this.cho;
               this.cho = ch;
