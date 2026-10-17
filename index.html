@@ -264,6 +264,7 @@
         border: 1px solid rgba(212, 162, 89, 0.5);
         color: #ecc482;
         cursor: pointer;
+        font-family: inherit;
         font-weight: 500;
       }
       .demo-badge:hover {
@@ -556,6 +557,15 @@
         outline-offset: 3px;
       }
 
+      /* Tab 으로 버튼·슬라이더에 왔을 때 어디에 있는지 보이게 한다 */
+      .hud-btn:focus-visible,
+      .demo-badge:focus-visible,
+      .sun-toggle-btn:focus-visible,
+      .ruler-input:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
+      }
+
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
@@ -682,7 +692,7 @@
             <span class="wordmark">Platen</span>
           </div>
           <div class="hud-right">
-            <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+            <button type="button" class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</button>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
@@ -1617,6 +1627,14 @@
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
         if (e.target === fontSelect || e.target === impactToggle) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+        // 버튼에 포커스가 있을 때 Space·Enter 는 종이 대신 버튼을 누른다
+        if (
+          e.target.closest &&
+          e.target.closest("button") &&
+          (e.key === " " || e.key === "Enter")
+        )
+          return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
