@@ -1530,9 +1530,9 @@
 
       // 램프 색 팔레트: dot=램프 점, glow=점 빛, bar=램프 바 그림자, btn=버튼, light=조명 중심/가장자리
       const LAMP_PALETTES = {
-        amber: { dot: ["#ffd885", "#e09638", "#6e4514"], glow: "255, 196, 95", bar: "245, 190, 100", btn: "243, 200, 120", light: ["255, 232, 175", "255, 214, 140"] },
-        moon: { dot: ["#e3f1ff", "#6fa8e0", "#1f3f66"], glow: "150, 200, 255", bar: "140, 190, 250", btn: "150, 200, 255", light: ["215, 235, 255", "170, 208, 255"] },
-        rose: { dot: ["#ffc4d4", "#e0567e", "#6e1f38"], glow: "255, 120, 160", bar: "245, 120, 160", btn: "240, 140, 170", light: ["255, 205, 220", "255, 160, 190"] },
+        amber: { dot: ["#ffd885", "#e09638", "#6e4514"], glow: "255, 196, 95", bar: "245, 190, 100", btn: "243, 200, 120", light: ["255, 232, 175", "255, 214, 140"], mid: "42, 28, 12", edge: "26, 16, 6" },
+        moon: { dot: ["#e3f1ff", "#6fa8e0", "#1f3f66"], glow: "150, 200, 255", bar: "140, 190, 250", btn: "150, 200, 255", light: ["200, 228, 255", "130, 185, 255"], mid: "14, 28, 56", edge: "6, 14, 34" },
+        rose: { dot: ["#ffc4d4", "#e0567e", "#6e1f38"], glow: "255, 120, 160", bar: "245, 120, 160", btn: "240, 140, 170", light: ["255, 190, 210", "255, 110, 160"], mid: "56, 14, 32", edge: "36, 6, 20" },
       };
       let lampColor = "amber";
 
@@ -1581,13 +1581,14 @@
         const coreStop = Math.max(8, (105 - focus) * 0.35);
         const midStop = Math.min(78, coreStop + (115 - focus) * 0.55);
 
+        const pal = LAMP_PALETTES[lampColor];
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(${LAMP_PALETTES[lampColor].light[0]}, 0.28) 0%,
-      rgba(${LAMP_PALETTES[lampColor].light[1]}, 0.12) ${coreStop}%,
-      rgba(22, 20, 17, 0.48) ${midStop}%,
-      rgba(14, 13, 11, 0.78) 100%
+      rgba(${pal.light[0]}, 0.4) 0%,
+      rgba(${pal.light[1]}, 0.2) ${coreStop}%,
+      rgba(${pal.mid}, 0.55) ${midStop}%,
+      rgba(${pal.edge}, 0.82) 100%
     )
   `;
       }
