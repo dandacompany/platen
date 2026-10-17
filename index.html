@@ -1718,7 +1718,11 @@
         desk.focus();
       });
 
-      document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("clearBtn").addEventListener("click", (e) => {
+        // 리셋 버튼은 종이 영역 안에 있어서, 막지 않으면 아래 종이 클릭이 데모를 바로 멈춘다
+        // 대신 문서 클릭으로 닫히던 잉크병 패널은 여기서 직접 닫는다
+        e.stopPropagation();
+        setInkPanelOpen(false);
         sound.init();
         stopDemo();
         startDemo(true);
