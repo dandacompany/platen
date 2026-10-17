@@ -682,6 +682,7 @@
             <span class="wordmark">Platen</span>
           </div>
           <div class="hud-right">
+            <button class="hud-btn" id="timeStampBtn" type="button" aria-label="현재 날짜와 시간 도장 찍기" title="현재 날짜와 시간 도장 찍기">🕒</button>
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
@@ -1722,6 +1723,24 @@
         sound.init();
         stopDemo();
         startDemo(true);
+        desk.focus();
+      });
+
+      function formatTimestamp(date) {
+        const pad = (value) => String(value).padStart(2, "0");
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      }
+
+      const timeStampBtn = document.getElementById("timeStampBtn");
+      timeStampBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        stopDemo();
+        committedStr += automata.flush();
+        if (committedStr && !committedStr.endsWith("\n")) {
+          committedStr += "\n";
+        }
+        committedStr += `${formatTimestamp(new Date())}\n`;
+        updateScreen();
         desk.focus();
       });
 
