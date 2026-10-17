@@ -581,6 +581,13 @@
           </button>
         </div>
 
+        <div style="display:flex;align-items:center;gap:14px;padding:8px 28px;color:#b9ad99;font-size:12px;flex-wrap:wrap">
+          <button class="demo-badge" id="horrorToggle" type="button" aria-pressed="false">공포 배경음 켜기</button>
+          <label for="horrorVolume">배경음 음량</label>
+          <input id="horrorVolume" type="range" min="0" max="100" value="25" aria-label="공포 배경음 음량" style="width:110px;accent-color:#b98768" />
+          <span id="horrorStatus" role="status">밤의 성 · 직접 합성한 배경음</span>
+        </div>
+
         <!-- 3. 하단 안내 줄 -->
         <div class="footer-hint">
           <span
@@ -643,7 +650,7 @@
             const filter = this.ctx.createBiquadFilter();
             filter.type = "bandpass";
             filter.frequency.setValueAtTime(
-              isSpace ? 900 : 1750 + (Math.random() * 350 - 175),
+              isSpace ? 420 : 720 + (Math.random() * 180 - 90),
               now,
             );
             filter.Q.setValueAtTime(2.2, now);
@@ -660,16 +667,31 @@
             const osc = this.ctx.createOscillator();
             const oscGain = this.ctx.createGain();
             osc.type = "triangle";
-            osc.frequency.setValueAtTime(isSpace ? 140 : 240, now);
-            osc.frequency.exponentialRampToValueAtTime(55, now + 0.035);
+            osc.frequency.setValueAtTime(isSpace ? 85 : 125, now);
+            osc.frequency.exponentialRampToValueAtTime(34, now + 0.11);
 
-            oscGain.gain.setValueAtTime(0.25, now);
-            oscGain.gain.exponentialRampToValueAtTime(0.005, now + 0.035);
+            oscGain.gain.setValueAtTime(0.22, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
             osc.connect(oscGain);
             oscGain.connect(this.ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.038);
+            osc.stop(now + 0.15);
+
+            // Original inharmonic metal resonance, with finite tails at typing speed.
+            [187, 271.3, 413.7].forEach((frequency, index) => {
+              const metal = this.ctx.createOscillator();
+              const tail = this.ctx.createGain();
+              metal.type = "sine";
+              metal.frequency.setValueAtTime(frequency, now);
+              metal.frequency.exponentialRampToValueAtTime(frequency * 0.92, now + 0.3);
+              tail.gain.setValueAtTime(0, now);
+              tail.gain.linearRampToValueAtTime((isSpace ? 0.018 : 0.028) / (index + 1), now + 0.004);
+              tail.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+              metal.connect(tail).connect(this.ctx.destination);
+              metal.start(now);
+              metal.stop(now + 0.4);
+            });
           } catch (e) {}
         }
 
@@ -679,7 +701,7 @@
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
 
-            [2150, 4300, 6100].forEach((freq, idx) => {
+            [392, 554.37, 830.61].forEach((freq, idx) => {
               const osc = this.ctx.createOscillator();
               const gain = this.ctx.createGain();
               osc.type = "sine";
@@ -702,6 +724,139 @@
       }
 
       const sound = new TypewriterAudio();
+
+      // Original procedural soundscape: no recordings, samples or borrowed melodies.
+      // Separate context lets music stop without muting the typewriter.
+      const horrorToggle = document.getElementById("horrorToggle");
+      const horrorVolume = document.getElementById("horrorVolume");
+      const horrorStatus = document.getElementById("horrorStatus");
+      let horrorContext = null;
+      let horrorMaster = null;
+      let horrorBusy = false;
+
+      async function toggleHorror() {
+        if (horrorBusy) return;
+        horrorBusy = true;
+        horrorToggle.disabled = true;
+        try {
+          if (horrorContext) {
+            const closing = horrorContext;
+            const now = closing.currentTime;
+            horrorMaster.gain.cancelScheduledValues(now);
+            horrorMaster.gain.setTargetAtTime(0, now, 0.08);
+            await new Promise(resolve => setTimeout(resolve, 350));
+            await closing.close();
+            horrorContext = null;
+            horrorMaster = null;
+            horrorToggle.textContent = "공포 배경음 켜기";
+            horrorToggle.setAttribute("aria-pressed", "false");
+            horrorStatus.textContent = "밤의 성 · 정지됨";
+          } else {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) throw new Error("Web Audio unavailable");
+            horrorContext = new AudioCtx();
+            await horrorContext.resume();
+            if (horrorContext.state !== "running") throw new Error("Audio blocked");
+            const ctx = horrorContext;
+            const now = ctx.currentTime;
+            horrorMaster = ctx.createGain();
+            horrorMaster.gain.setValueAtTime(0, now);
+            horrorMaster.gain.setTargetAtTime(Number(horrorVolume.value) / 100 * 0.3, now, 0.7);
+            const limiter = ctx.createDynamicsCompressor();
+            limiter.threshold.value = -18;
+            limiter.ratio.value = 8;
+            horrorMaster.connect(limiter).connect(ctx.destination);
+            // Detuned low drones and a slowly breathing, dissonant ghost choir.
+            [36.71, 37.19, 55, 58.27, 77.78, 103.83, 110.87].forEach((frequency, index) => {
+              const voice = ctx.createOscillator();
+              voice.type = index < 3 ? "triangle" : "sine";
+              voice.frequency.value = frequency;
+              const gain = ctx.createGain();
+              gain.gain.value = index < 3 ? 0.17 : 0.045;
+              const breath = ctx.createOscillator();
+              breath.frequency.value = 0.065 + index * 0.017;
+              const depth = ctx.createGain();
+              depth.gain.value = index < 3 ? 0.055 : 0.035;
+              breath.connect(depth).connect(gain.gain);
+              const drift = ctx.createOscillator();
+              drift.frequency.value = 0.11 + index * 0.023;
+              const driftDepth = ctx.createGain();
+              driftDepth.gain.value = index < 3 ? 0.6 : 3.2;
+              drift.connect(driftDepth).connect(voice.frequency);
+              voice.connect(gain).connect(horrorMaster);
+              voice.start(); breath.start(); drift.start();
+            });
+            // A seamless loop of freshly generated wind, not a downloaded sample.
+            const wind = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
+            const samples = wind.getChannelData(0);
+            for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+            const air = ctx.createBufferSource();
+            air.buffer = wind;
+            air.loop = true;
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.value = 680;
+            filter.Q.value = 2;
+            const airGain = ctx.createGain();
+            airGain.gain.value = 0.065;
+            air.connect(filter).connect(airGain).connect(horrorMaster);
+            air.start();
+            // Original two-beat pulse: a distant, muffled heartbeat every 2.8 s.
+            const pulseBuffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 2.8), ctx.sampleRate);
+            const pulseData = pulseBuffer.getChannelData(0);
+            for (let i = 0; i < pulseData.length; i++) {
+              const t = i / ctx.sampleRate;
+              const first = Math.sin(2 * Math.PI * 47 * t) * Math.exp(-t * 19);
+              const secondTime = t - 0.28;
+              const second = secondTime >= 0 ? Math.sin(2 * Math.PI * 41 * secondTime) * Math.exp(-secondTime * 23) * 0.7 : 0;
+              pulseData[i] = (first + second) * Math.min(1, t * 180);
+            }
+            const pulse = ctx.createBufferSource();
+            pulse.buffer = pulseBuffer;
+            pulse.loop = true;
+            const pulseGain = ctx.createGain();
+            pulseGain.gain.value = 0.5;
+            pulse.connect(pulseGain).connect(horrorMaster);
+            pulse.start();
+            // A thin distant howl rises and falls slowly, never a jump scare.
+            const howl = ctx.createOscillator();
+            howl.type = "sine";
+            howl.frequency.value = 622.25;
+            const howlGain = ctx.createGain();
+            howlGain.gain.value = 0.023;
+            const swell = ctx.createOscillator();
+            swell.frequency.value = 0.047;
+            const swellDepth = ctx.createGain();
+            swellDepth.gain.value = 0.022;
+            swell.connect(swellDepth).connect(howlGain.gain);
+            const shiver = ctx.createOscillator();
+            shiver.frequency.value = 4.7;
+            const shiverDepth = ctx.createGain();
+            shiverDepth.gain.value = 8;
+            shiver.connect(shiverDepth).connect(howl.frequency);
+            howl.connect(howlGain).connect(horrorMaster);
+            howl.start(); swell.start(); shiver.start();
+            horrorToggle.textContent = "공포 배경음 끄기";
+            horrorToggle.setAttribute("aria-pressed", "true");
+            horrorStatus.textContent = "밤의 성 · 재생 중";
+          }
+        } catch (error) {
+          if (horrorContext) await horrorContext.close().catch(() => {});
+          horrorContext = null;
+          horrorMaster = null;
+          horrorToggle.textContent = "공포 배경음 켜기";
+          horrorToggle.setAttribute("aria-pressed", "false");
+          horrorStatus.textContent = "재생할 수 없습니다. 브라우저 오디오 설정을 확인해 주세요.";
+        } finally {
+          horrorBusy = false;
+          horrorToggle.disabled = false;
+        }
+      }
+      horrorToggle.addEventListener("click", toggleHorror);
+      horrorVolume.addEventListener("input", () => {
+        if (horrorMaster) horrorMaster.gain.setTargetAtTime(
+          Number(horrorVolume.value) / 100 * 0.3, horrorContext.currentTime, 0.1);
+      });
 
       /* =========================================================================
    2. 한글 두벌식 자모 조합 오토마타
@@ -1274,6 +1429,8 @@
 
       window.addEventListener("keydown", (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+        // Music controls retain native keyboard operation without typing on paper.
+        if (e.target.closest?.("#horrorToggle, #horrorVolume")) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
