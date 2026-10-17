@@ -17,6 +17,13 @@
     <style>
       :root {
         --lamp-x: 200px;
+        /* 램프 색 (JS의 LAMP_PALETTES 가 바꿔 준다) */
+        --lamp-dot-core: #ffd885;
+        --lamp-dot-mid: #e09638;
+        --lamp-dot-edge: #6e4514;
+        --lamp-glow: 255, 196, 95;
+        --lamp-bar-glow: 245, 190, 100;
+        --lamp-btn: 243, 200, 120;
       }
 
       * {
@@ -380,7 +387,7 @@
         gap: 10px;
         box-shadow:
           0 2px 10px rgba(0, 0, 0, 0.8),
-          0 -4px 18px rgba(245, 190, 100, 0.25);
+          0 -4px 18px rgba(var(--lamp-bar-glow), 0.25);
         transition: left 0.055s cubic-bezier(0.2, 0.9, 0.3, 1);
       }
 
@@ -390,11 +397,11 @@
         border-radius: 50%;
         background: radial-gradient(
           circle,
-          #ffd885 0%,
-          #e09638 70%,
-          #6e4514 100%
+          var(--lamp-dot-core) 0%,
+          var(--lamp-dot-mid) 70%,
+          var(--lamp-dot-edge) 100%
         );
-        box-shadow: 0 0 8px 2px rgba(255, 196, 95, 0.75);
+        box-shadow: 0 0 8px 2px rgba(var(--lamp-glow), 0.75);
         transition: opacity 0.2s;
       }
 
@@ -526,9 +533,32 @@
       }
 
       .sun-toggle-btn.active {
-        color: #f3c878;
+        color: rgb(var(--lamp-btn));
         border-color: #544936;
-        box-shadow: 0 0 12px rgba(243, 200, 120, 0.18);
+        box-shadow: 0 0 12px rgba(var(--lamp-btn), 0.18);
+      }
+
+      /* 램프 색 선택 점 */
+      .lamp-swatches {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-left: 4px;
+        flex-shrink: 0;
+      }
+      .lamp-swatch {
+        width: 12px;
+        height: 12px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid #38352f;
+        cursor: pointer;
+        opacity: 0.55;
+        transition: opacity 0.2s, box-shadow 0.2s;
+      }
+      .lamp-swatch.active {
+        opacity: 1;
+        box-shadow: 0 0 0 2px #1c1b18, 0 0 0 3px #9e998e;
       }
 
       .font-controls {
@@ -796,6 +826,12 @@
               />
             </svg>
           </button>
+
+          <div class="lamp-swatches" role="group" aria-label="램프 색">
+            <button type="button" class="lamp-swatch active" data-lamp="amber" title="호박색" aria-label="호박색" style="background: #e09638"></button>
+            <button type="button" class="lamp-swatch" data-lamp="moon" title="청백색" aria-label="청백색" style="background: #6fa8e0"></button>
+            <button type="button" class="lamp-swatch" data-lamp="rose" title="장밋빛" aria-label="장밋빛" style="background: #e0567e"></button>
+          </div>
         </div>
 
         <!-- Google Fonts 제공, 두 글꼴 모두 SIL Open Font License 1.1.
@@ -1492,6 +1528,31 @@
 
       let isLampOn = true;
 
+      // 램프 색 팔레트: dot=램프 점, glow=점 빛, bar=램프 바 그림자, btn=버튼, light=조명 중심/가장자리
+      const LAMP_PALETTES = {
+        amber: { dot: ["#ffd885", "#e09638", "#6e4514"], glow: "255, 196, 95", bar: "245, 190, 100", btn: "243, 200, 120", light: ["255, 232, 175", "255, 214, 140"], mid: "42, 28, 12", edge: "26, 16, 6" },
+        moon: { dot: ["#e3f1ff", "#6fa8e0", "#1f3f66"], glow: "150, 200, 255", bar: "140, 190, 250", btn: "150, 200, 255", light: ["200, 228, 255", "130, 185, 255"], mid: "14, 28, 56", edge: "6, 14, 34" },
+        rose: { dot: ["#ffc4d4", "#e0567e", "#6e1f38"], glow: "255, 120, 160", bar: "245, 120, 160", btn: "240, 140, 170", light: ["255, 190, 210", "255, 110, 160"], mid: "56, 14, 32", edge: "36, 6, 20" },
+      };
+      let lampColor = "amber";
+
+      function setLampColor(name) {
+        const c = LAMP_PALETTES[name];
+        if (!c) return;
+        lampColor = name;
+        const root = document.documentElement.style;
+        root.setProperty("--lamp-dot-core", c.dot[0]);
+        root.setProperty("--lamp-dot-mid", c.dot[1]);
+        root.setProperty("--lamp-dot-edge", c.dot[2]);
+        root.setProperty("--lamp-glow", c.glow);
+        root.setProperty("--lamp-bar-glow", c.bar);
+        root.setProperty("--lamp-btn", c.btn);
+        document.querySelectorAll(".lamp-swatch").forEach((b) => {
+          b.classList.toggle("active", b.dataset.lamp === name);
+        });
+        updateLightingOverlay();
+      }
+
       function updateLightingOverlay(lampX, viewportH) {
         const x =
           lampX ||
@@ -1520,13 +1581,14 @@
         const coreStop = Math.max(8, (105 - focus) * 0.35);
         const midStop = Math.min(78, coreStop + (115 - focus) * 0.55);
 
+        const pal = LAMP_PALETTES[lampColor];
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(255, 232, 175, 0.28) 0%,
-      rgba(255, 214, 140, 0.12) ${coreStop}%,
-      rgba(22, 20, 17, 0.48) ${midStop}%,
-      rgba(14, 13, 11, 0.78) 100%
+      rgba(${pal.light[0]}, 0.4) 0%,
+      rgba(${pal.light[1]}, 0.2) ${coreStop}%,
+      rgba(${pal.mid}, 0.55) ${midStop}%,
+      rgba(${pal.edge}, 0.82) 100%
     )
   `;
       }
@@ -1535,6 +1597,13 @@
         slider.addEventListener("input", () => updateLightingOverlay());
         // 슬라이더를 만진 뒤에도 키보드 입력이 종이로 가도록 포커스를 돌려준다
         slider.addEventListener("change", () => desk.focus());
+      });
+
+      document.querySelectorAll(".lamp-swatch").forEach((b) => {
+        b.addEventListener("click", () => {
+          setLampColor(b.dataset.lamp);
+          desk.focus();
+        });
       });
 
       sunToggleBtn.addEventListener("click", () => {
