@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -88,8 +88,8 @@
         right: 0;
         top: 0;
         padding: 48px 76px 160px 84px;
-        font-family: "Gowun Batang", "Nanum Myeongjo", serif;
-        font-size: 18px;
+        font-family: "Nanum Pen Script", "Gowun Batang", "Nanum Myeongjo", cursive;
+        font-size: 25px;
         line-height: 30px;
         color: #1e1a15;
         letter-spacing: -0.01em;
@@ -108,6 +108,7 @@
       }
 
       #cursorAnchor {
+        position: relative;
         display: inline-block;
         width: 2px;
         height: 20px;
@@ -188,72 +189,28 @@
         letter-spacing: -0.02em;
       }
 
-      /* 타자기 T자 활자 가이드 */
-      .type-guide-container {
-        position: absolute;
-        left: 0;
-        bottom: 6px;
-        width: 100%;
-        height: 34px;
-        pointer-events: none;
-        z-index: 6;
-      }
-
+      /* 펜촉을 커서에 고정해 조합·줄바꿈·종이 이동을 함께 따라간다. */
       .type-guide {
         position: absolute;
-        bottom: 0;
-        left: var(--lamp-x);
-        transform: translateX(-50%);
-        width: 24px;
-        height: 25px;
-        transition: left 0.055s cubic-bezier(0.2, 0.9, 0.3, 1);
+        left: 0;
+        top: 16px;
+        width: 40px;
+        height: 40px;
+        pointer-events: none;
+        transform-origin: 0 0;
       }
 
-      .type-guide::before {
-        content: "";
+      .type-guide svg {
         position: absolute;
-        top: 1px;
-        left: 2px;
-        right: 2px;
-        height: 4.5px;
-        background: #171614;
-        border-radius: 1.5px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-      }
-      .type-guide::after {
-        content: "";
-        position: absolute;
-        top: 5px;
-        left: 9.5px;
-        width: 5px;
-        height: 19px;
-        background: linear-gradient(90deg, #121110, #2c2926, #121110);
-        border-radius: 1px;
-      }
-      .type-guide-base {
-        position: absolute;
-        bottom: 0;
-        left: 5px;
-        right: 5px;
-        height: 4px;
-        background: #171614;
-        border-radius: 1px;
+        left: -4px;
+        top: -36px;
+        width: 40px;
+        height: 40px;
+        filter: drop-shadow(0 2px 2px rgba(40, 91, 152, 0.2));
       }
 
-      .type-guide.strike {
-        animation: typeStrike 0.07s ease-out;
-      }
-
-      @keyframes typeStrike {
-        0% {
-          transform: translateX(-50%) translateY(0) scaleY(1);
-        }
-        45% {
-          transform: translateX(-50%) translateY(-5px) scaleY(0.92);
-        }
-        100% {
-          transform: translateX(-50%) translateY(0) scaleY(1);
-        }
+      @media (prefers-reduced-motion: reduce) {
+        .paper-sheet { transition: none; }
       }
 
       /* ================= 2. 램프 바 & 조명 컨트롤러 영역 ================= */
@@ -463,6 +420,89 @@
         color: #c9c3b6;
         background: #23221f;
       }
+      /* 밝은 크림 용지와 블루 잉크. 기존 타자기·램프 동작은 유지한다. */
+      body {
+        background-color: #f2eee5;
+      }
+      .desk {
+        background-color: #eee7da;
+        border-color: #ded5c5;
+        box-shadow: 0 20px 60px rgba(118, 109, 85, 0.18);
+      }
+      .paper-viewport {
+        background-color: #fffaf0;
+      }
+      .paper-texture {
+        opacity: 0.14;
+      }
+      .paper-sheet {
+        color: #285b98;
+      }
+      .ink-text {
+        text-shadow: 0 0 0.6px rgba(40, 91, 152, 0.35);
+      }
+      .composing-char {
+        text-shadow: 0 0 0.9px rgba(40, 91, 152, 0.55);
+      }
+      /* 낮의 주변광을 남겨 램프를 꺼도 종이와 글씨가 보이게 한다. */
+      .lighting-layer {
+        opacity: 0.2;
+      }
+      .hud-btn, .wordmark, .char-counter {
+        color: #52677d;
+      }
+      .hud-btn:hover {
+        color: #285b98;
+      }
+      .demo-badge {
+        background: rgba(40, 91, 152, 0.08);
+        border-color: rgba(40, 91, 152, 0.3);
+        color: #285b98;
+      }
+      .demo-badge:hover {
+        background: rgba(40, 91, 152, 0.15);
+      }
+      .lamp-assembly {
+        background: linear-gradient(180deg, #f1eadf, #e9e0d1);
+        border-top-color: #d1c5b2;
+      }
+      .lamp-rail {
+        background: #d8cdbb;
+        border-color: #c8baa4;
+        box-shadow: inset 0 2px 5px rgba(118, 109, 85, 0.18);
+      }
+      .lamp-carriage {
+        background: linear-gradient(180deg, #f5eee1, #d8cbb7);
+        border-color: #bdac91;
+        box-shadow: 0 2px 8px rgba(118, 109, 85, 0.2);
+      }
+      .control-label, .footer-hint {
+        color: #52677d;
+      }
+      .ruler-input::-webkit-slider-thumb {
+        background: #285b98;
+        box-shadow: none;
+      }
+      .ruler-input::-moz-range-thumb {
+        background: #285b98;
+        box-shadow: none;
+      }
+      .sun-toggle-btn {
+        background: #fffaf0;
+        border-color: #c4bba9;
+        color: #52677d;
+      }
+      .sun-toggle-btn.active {
+        background: #fff1d0;
+        color: #856019;
+        border-color: #b99551;
+        box-shadow: 0 0 12px rgba(202, 159, 71, 0.18);
+      }
+      .footer-hint kbd {
+        background: #fffaf0;
+        border-color: #c4bba9;
+        color: #52677d;
+      }
     </style>
   </head>
   <body>
@@ -491,18 +531,20 @@
         <div class="paper-sheet" id="paperSheet">
           <span class="ink-text" id="committedText"></span
           ><span class="composing-char" id="composingText"></span
-          ><span id="cursorAnchor">&#8203;</span>
+          ><span id="cursorAnchor">&#8203;<span class="type-guide" id="typeGuide" aria-hidden="true">
+            <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+              <path d="M12 24 29 7Q32 4 35 7L36 8Q39 11 36 14L19 31Z" fill="#285b98" stroke="#214a7a" stroke-width="1.2" />
+              <path d="m15 23 16-16 3 3-16 16Z" fill="#6f98c5" />
+              <path d="m12 24 7 7-15 5Z" fill="#e3c48c" stroke="#967547" stroke-width="1" />
+              <path d="m4 36 9-9" stroke="#285b98" stroke-width="1.3" />
+              <circle cx="13" cy="27" r="1.4" fill="#285b98" />
+              <path d="m26 11 7 7" stroke="#e3c48c" stroke-width="2" />
+            </svg>
+          </span></span>
         </div>
 
         <!-- 나이트 램프 빛 & 그림자 레이어 -->
         <div class="lighting-layer" id="lightingLayer"></div>
-
-        <!-- 타자기 T자 활자 가이드 -->
-        <div class="type-guide-container">
-          <div class="type-guide" id="typeGuide">
-            <div class="type-guide-base"></div>
-          </div>
-        </div>
       </div>
 
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
@@ -1083,16 +1125,8 @@
       const cursorAnchor = document.getElementById("cursorAnchor");
       const paperSheet = document.getElementById("paperSheet");
       const paperViewport = document.getElementById("paperViewport");
-      const typeGuide = document.getElementById("typeGuide");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
-
-      // T자 활자 타격 애니메이션
-      function triggerStrike() {
-        typeGuide.classList.remove("strike");
-        void typeGuide.offsetWidth;
-        typeGuide.classList.add("strike");
-      }
 
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
@@ -1139,7 +1173,6 @@
       function handleKey(k) {
         if (k === "BACK") {
           sound.playKeyClick(false);
-          triggerStrike();
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
           }
@@ -1149,7 +1182,6 @@
 
         if (k === " ") {
           sound.playKeyClick(true);
-          triggerStrike();
           committedStr += automata.flush() + " ";
           updateScreen();
           return;
@@ -1157,14 +1189,12 @@
 
         if (k === "Enter") {
           sound.playReturnBell();
-          triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
           return;
         }
 
         sound.playKeyClick(false);
-        triggerStrike();
 
         const res = automata.inputJamo(k);
         if (res.committed) {
@@ -1395,6 +1425,8 @@
 
       // 초기 실행
       updateScreen();
+      // 웹폰트가 늦게 도착해 줄바꿈이 달라져도 입력 줄 위치를 다시 맞춘다.
+      document.fonts.ready.then(() => updateScreen());
       desk.focus();
       startDemo(false);
     </script>
