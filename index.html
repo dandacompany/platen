@@ -556,6 +556,26 @@
         outline-offset: 3px;
       }
 
+      .sound-toggle-btn {
+        border: 1px solid #544936;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: #272521;
+        color: #ecc482;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .sound-toggle-btn[aria-pressed="false"] {
+        color: #9e998e;
+        border-color: #3f3b33;
+      }
+
+      .sound-toggle-btn:focus-visible {
+        outline: 2px solid #ecc482;
+        outline-offset: 3px;
+      }
+
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
@@ -664,6 +684,18 @@
         color: #c9c3b6;
         background: #23221f;
       }
+      .quote-next-btn {
+        margin-left: 8px;
+        padding: 2px 7px;
+        border: 1px solid #78674c;
+        border-radius: 4px;
+        color: #d8c79f;
+        background: #29261f;
+        font: inherit;
+        cursor: pointer;
+      }
+      .quote-next-btn:hover,
+      .quote-next-btn:focus-visible { color: #fff0c5; border-color: #c5a466; }
     </style>
   </head>
   <body>
@@ -683,6 +715,7 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+            <button class="quote-next-btn" id="quoteNextBtn" type="button" hidden>↻ 다른 문장</button>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
@@ -808,6 +841,15 @@
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
+          <button
+            id="soundToggleBtn"
+            class="sound-toggle-btn"
+            type="button"
+            aria-pressed="true"
+            title="타자 소리 끄기"
+          >
+            🔊 타자 소리 켜짐
+          </button>
         </div>
 
         <!-- 3. 하단 안내 줄 -->
@@ -1315,11 +1357,21 @@
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
       const impactToggle = document.getElementById("impactToggle");
+      const soundToggleBtn = document.getElementById("soundToggleBtn");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
+      let isSoundOn = true;
+
+      function playKeyClick(isSpace = false) {
+        if (isSoundOn) sound.playKeyClick(isSpace);
+      }
+
+      function playReturnBell() {
+        if (isSoundOn) sound.playReturnBell();
+      }
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1378,6 +1430,16 @@
       };
       impactToggle.addEventListener("change", () => {
         if (!impactToggle.checked) clearTypeImpacts();
+      });
+      soundToggleBtn.addEventListener("click", () => {
+        isSoundOn = !isSoundOn;
+        soundToggleBtn.setAttribute("aria-pressed", String(isSoundOn));
+        soundToggleBtn.title = isSoundOn ? "타자 소리 끄기" : "타자 소리 켜기";
+        soundToggleBtn.textContent = isSoundOn
+          ? "🔊 타자 소리 켜짐"
+          : "🔇 타자 소리 꺼짐";
+        if (isSoundOn) sound.init();
+        desk.focus();
       });
       const handleReducedMotionChange = (event) => {
         if (event.matches) clearTypeImpacts();
@@ -1442,7 +1504,7 @@
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
         if (k === "BACK") {
-          sound.playKeyClick(false);
+          playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
@@ -1452,7 +1514,7 @@
         }
 
         if (k === " ") {
-          sound.playKeyClick(true);
+          playKeyClick(true);
           triggerStrike();
           committedStr += automata.flush() + " ";
           updateScreen();
@@ -1460,14 +1522,14 @@
         }
 
         if (k === "Enter") {
-          sound.playReturnBell();
+          playReturnBell();
           triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
           return;
         }
 
-        sound.playKeyClick(false);
+        playKeyClick(false);
         triggerStrike();
 
         const res = automata.inputJamo(k);
@@ -1476,6 +1538,23 @@
         }
         updateScreen();
         triggerTypeImpact();
+      }
+
+      // 명언은 실제 키보드 자판 변환을 거치지 않고 원문 그대로 인쇄한다.
+      function handleLiteralChar(char, animate = true) {
+        if (char === "\n") {
+          playReturnBell();
+          if (animate) triggerStrike();
+        } else {
+          playKeyClick(char === " ");
+          if (animate) {
+            triggerStrike();
+            updateScreen();
+            triggerTypeImpact();
+          }
+        }
+        committedStr += char;
+        updateScreen();
       }
 
       /* =========================================================================
@@ -1615,7 +1694,12 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target === fontSelect ||
+          e.target === impactToggle ||
+          e.target === soundToggleBtn
+        )
+          return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
@@ -1665,23 +1749,53 @@
       let demoTimer = null;
       let demoIdx = 0;
       let isDemoRunning = true;
+      let isDemoComplete = false;
+      let demoText = "";
       const demoToggleBtn = document.getElementById("demoToggleBtn");
+      const quoteNextBtn = document.getElementById("quoteNextBtn");
+
+      async function pickQuote() {
+        const response = await fetch("./quotes.ko.json");
+        if (!response.ok) throw new Error("명언 데이터를 불러오지 못했습니다.");
+        const quotes = await response.json();
+        const previous = Number(localStorage.getItem("platen:lastQuoteIndex"));
+        const daily = new URLSearchParams(window.location.search).get("quote") === "daily";
+        let index;
+        if (daily) {
+          const now = new Date();
+          const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+            .map((part) => String(part).padStart(2, "0"))
+            .join("-");
+          let seed = 0;
+          for (const char of today) seed = (seed * 31 + char.charCodeAt(0)) >>> 0;
+          index = seed % quotes.length;
+        } else {
+          index = Math.floor(Math.random() * quotes.length);
+          if (quotes.length > 1 && index === previous) index = (index + 1) % quotes.length;
+        }
+        localStorage.setItem("platen:lastQuoteIndex", String(index));
+        const quote = quotes[index];
+        return `${quote.text}\n\n— ${quote.author}`;
+      }
+
+      function finishDemo() {
+        stopDemo();
+        isDemoComplete = true;
+        demoToggleBtn.textContent = "자동 타이핑 ▶";
+        quoteNextBtn.hidden = false;
+      }
 
       function stepDemo() {
         if (!isDemoRunning) return;
-        if (demoIdx >= DEMO_SEQUENCE.length) {
-          stopDemo();
-          demoToggleBtn.textContent = "다시 재생 ↻";
+        if (demoIdx >= demoText.length) {
+          finishDemo();
           return;
         }
-
-        const key = DEMO_SEQUENCE[demoIdx++];
-        handleKey(key);
-
+        const char = demoText[demoIdx++];
+        handleLiteralChar(char);
         let delay = 145 + Math.random() * 70;
-        if (key === "Enter") delay = 420;
-        else if (key === " ") delay = 200;
-
+        if (char === "\n") delay = 420;
+        else if (char === " ") delay = 200;
         demoTimer = setTimeout(stepDemo, delay);
       }
 
@@ -1692,29 +1806,41 @@
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
 
-      function startDemo(resetText = false) {
+      async function startDemo(resetText = false) {
         if (resetText) {
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
+          isDemoComplete = false;
+          quoteNextBtn.hidden = true;
           updateScreen();
         }
+        demoText = await pickQuote();
+        demoIdx = 0;
         isDemoRunning = true;
         demoToggleBtn.textContent = "자동 타이핑 중 ⏸";
         if (demoTimer) clearTimeout(demoTimer);
+        if (reducedMotionQuery.matches) {
+          for (const char of demoText) handleLiteralChar(char, false);
+          finishDemo();
+          return;
+        }
         demoTimer = setTimeout(stepDemo, 450);
       }
 
       demoToggleBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         sound.init();
-        if (isDemoRunning) {
-          stopDemo();
-        } else {
-          const needReset = demoIdx >= DEMO_SEQUENCE.length;
-          startDemo(needReset);
-        }
+        if (isDemoRunning) stopDemo();
+        else startDemo(false);
+        desk.focus();
+      });
+
+      quoteNextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        sound.init();
+        startDemo(false);
         desk.focus();
       });
 
@@ -1740,7 +1866,9 @@
       // 초기 실행
       updateScreen();
       desk.focus();
-      startDemo(false);
+      startDemo(true).catch(() => {
+        demoToggleBtn.textContent = "명언을 불러오지 못했습니다";
+      });
     </script>
   </body>
 </html>
