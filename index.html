@@ -206,6 +206,48 @@
          --paper-line 은 잉크병 글자 크기와 함께 바뀐다. */
       /* 종이 바탕은 시트보다 화면 높이만큼 위로 더 그린다. 글이 짧아 시트가 아래로 내려와도
          위쪽 빈 곳까지 줄·섬유가 이어지고, 시트에 붙어 있어 타이핑할 때 함께 움직인다. */
+      /* 원고지: 정사각형 칸이 한 줄로 이어지고 줄 사이에 빈 띠가 있다.
+         칸 크기(--wg-cell)·줄 간격(--wg-pitch)·한 줄 칸 수(--wg-cols)는 JS 가 글자 크기와 화면 폭으로 정한다.
+         그림 순서: 가로 테두리 → 줄 사이 띠(바탕색으로 세로줄을 가림) → 세로줄 */
+      .paper-sheet.wongoji::before {
+        --wg-ink: rgba(170, 70, 50, 0.55);
+        content: "";
+        position: absolute;
+        top: -100vh;
+        bottom: 0;
+        left: 84px;
+        width: calc(var(--wg-cols, 20) * var(--wg-cell, 29px) + 1px);
+        z-index: -1;
+        pointer-events: none;
+        background-image:
+          linear-gradient(to bottom,
+            var(--wg-ink) 0 1px, transparent 1px var(--wg-cell),
+            var(--wg-ink) var(--wg-cell) calc(var(--wg-cell) + 1px), transparent calc(var(--wg-cell) + 1px)),
+          linear-gradient(to bottom, transparent calc(var(--wg-cell) + 1px), #d2c9b6 calc(var(--wg-cell) + 1px)),
+          linear-gradient(to right, var(--wg-ink) 0 1px, transparent 1px);
+        background-size:
+          100% var(--wg-pitch, 38px),
+          100% var(--wg-pitch, 38px),
+          var(--wg-cell, 29px) var(--wg-pitch, 38px);
+        background-position: 0 calc(100vh + 48px);
+      }
+      /* 원고지에서는 띄어쓰기를 빈 칸으로, 줄바꿈을 <br> 로 그린다. 그래서 공백을 그대로 보여 줄 필요가 없고,
+         HTML 들여쓰기 공백 때문에 첫 칸이 밀리지 않도록 공백 보존을 끈다. */
+      .paper-sheet.wongoji {
+        white-space: normal;
+      }
+      /* 원고지 한 칸에 글자 하나. 조합 중인 글자도 다음 칸에 들어간다. */
+      .paper-sheet.wongoji .wg-cell,
+      .paper-sheet.wongoji .composing-char:not(:empty) {
+        display: inline-block;
+        width: var(--wg-cell, 29px);
+        height: var(--wg-cell, 29px);
+        line-height: var(--wg-cell, 29px);
+        text-align: center;
+        vertical-align: top;
+        letter-spacing: 0;
+      }
+
       .paper-sheet.notebook::before,
       .paper-sheet.grid::before,
       .paper-sheet.hanji::before {
@@ -666,6 +708,14 @@
         background-size: 7px 7px;
         background-position: 3px 6px;
       }
+      .paper-swatch[data-paper="wongoji"] {
+        background-image:
+          linear-gradient(to bottom, rgba(170, 70, 50, 0.75) 0 1px, transparent 1px 6px, rgba(170, 70, 50, 0.75) 6px 7px, transparent 7px),
+          linear-gradient(to bottom, transparent 7px, #d6c6a4 7px),
+          linear-gradient(to right, rgba(170, 70, 50, 0.75) 1px, transparent 1px);
+        background-size: 100% 9px, 100% 9px, 6px 9px;
+        background-position: 3px 5px;
+      }
       .paper-swatch[data-paper="letter"] {
         background-color: #e2cfa6;
         box-shadow: inset 0 0 8px rgba(120, 80, 30, 0.5), 2px 4px 7px #0007;
@@ -890,6 +940,9 @@
               </button>
               <button type="button" class="paper-option" data-paper="letter" aria-pressed="false">
                 <span class="paper-swatch" data-paper="letter" aria-hidden="true"></span>편지지
+              </button>
+              <button type="button" class="paper-option" data-paper="wongoji" aria-pressed="false">
+                <span class="paper-swatch" data-paper="wongoji" aria-hidden="true"></span>원고지
               </button>
             </div>
           </div>
@@ -1571,10 +1624,30 @@
         reducedMotionQuery.addListener(handleReducedMotionChange);
       }
 
+      // 원고지: 글자(띄어쓰기·문장부호 포함) 하나를 칸 하나에 넣는다. 줄바꿈은 <br> 로 그린다.
+      function renderWongoji(text) {
+        const frag = document.createDocumentFragment();
+        for (const ch of text) {
+          if (ch === "\n") {
+            frag.appendChild(document.createElement("br"));
+            continue;
+          }
+          const cell = document.createElement("span");
+          cell.className = "wg-cell";
+          if (ch !== " ") cell.textContent = ch;
+          frag.appendChild(cell);
+        }
+        committedEl.replaceChildren(frag);
+      }
+
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        if (paperSheet.classList.contains("wongoji")) {
+          renderWongoji(committedStr);
+        } else {
+          committedEl.textContent = committedStr;
+        }
         composingEl.textContent = comp;
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
@@ -1743,11 +1816,27 @@
         setPaperPanelOpen(false);
         setInkPanelOpen(inkSizePanel.hidden);
       });
+      // 글자 크기와 종이 양식에 맞춰 줄 간격과 원고지 칸 크기·칸 수를 정한다.
+      function applyPaperMetrics() {
+        const size = Number(inkSizeSlider.value);
+        const wongoji = paperSheet.classList.contains("wongoji");
+        const cell = Math.round(size * 1.6);
+        const pitch = Math.round(size * 2.1);
+        paperSheet.style.fontSize = `${size}px`;
+        paperSheet.style.lineHeight = `${wongoji ? pitch : size * 5 / 3}px`;
+        paperSheet.style.setProperty("--paper-line", `${size * 5 / 3}px`);
+        paperSheet.style.setProperty("--wg-cell", `${cell}px`);
+        paperSheet.style.setProperty("--wg-pitch", `${pitch}px`);
+        if (wongoji) {
+          // 오른쪽 끝에 잘린 칸이 생기지 않도록, 글이 들어가는 폭에 꽉 차는 칸 수만 그린다.
+          const cs = getComputedStyle(paperSheet);
+          const textWidth = paperSheet.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          paperSheet.style.setProperty("--wg-cols", String(Math.max(1, Math.floor(textWidth / cell))));
+        }
+      }
       inkSizeSlider.addEventListener("input", () => {
         const size = Number(inkSizeSlider.value);
-        paperSheet.style.fontSize = `${size}px`;
-        paperSheet.style.lineHeight = `${size * 5 / 3}px`;
-        paperSheet.style.setProperty("--paper-line", `${size * 5 / 3}px`);
+        applyPaperMetrics();
         cursorAnchor.style.height = `${size + 2}px`;
         inkSizeValue.value = `${size}px`;
         inkSizeSlider.setAttribute("aria-valuetext", `${size}픽셀`);
@@ -1761,7 +1850,7 @@
       });
 
       // 종이 양식: 겉모습만 바꾸고 글 내용과 조합 상태는 건드리지 않는다.
-      const PAPER_NAMES = { plain: "민무늬", notebook: "줄 공책", grid: "모눈", hanji: "한지", letter: "편지지" };
+      const PAPER_NAMES = { plain: "민무늬", notebook: "줄 공책", grid: "모눈", hanji: "한지", letter: "편지지", wongoji: "원고지" };
       const paperToggleBtn = document.getElementById("paperToggleBtn");
       const paperToggleSwatch = document.getElementById("paperToggleSwatch");
       const paperStylePanel = document.getElementById("paperStylePanel");
@@ -1782,6 +1871,9 @@
         paperOptions.forEach((opt) => {
           opt.setAttribute("aria-pressed", String(opt.dataset.paper === kind));
         });
+        // 원고지는 글자를 그리는 방식과 줄 간격이 달라서, 바꿀 때마다 다시 그린다.
+        applyPaperMetrics();
+        updateScreen();
       }
       paperToggleBtn.addEventListener("click", () => {
         setInkPanelOpen(false);
@@ -1965,7 +2057,10 @@
       document.body.addEventListener("mousedown", () => sound.init(), {
         once: true,
       });
-      window.addEventListener("resize", () => updateScreen());
+      window.addEventListener("resize", () => {
+        applyPaperMetrics();
+        updateScreen();
+      });
 
       // 초기 실행
       updateScreen();
