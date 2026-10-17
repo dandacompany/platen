@@ -635,9 +635,42 @@
       .ink-size-scale { display: flex; justify-content: space-between; color: #b9ad93; font: 11px "Gowun Batang", serif; }
       .ink-bottle-btn:focus-visible,
       .ink-size-panel input:focus-visible { outline: 2px solid #e1bd77; outline-offset: 4px; }
+      .todo-btn {
+        position: absolute;
+        right: 96px;
+        bottom: calc(100% + 18px);
+        z-index: 12;
+        padding: 8px 12px;
+        border: 1px solid #78674c;
+        border-radius: 6px;
+        background: #272521;
+        color: #e3d3b1;
+        font: 12px "Gowun Batang", serif;
+        cursor: pointer;
+      }
+      .todo-btn:hover { background: #39352d; }
+      .todo-btn:focus-visible { outline: 2px solid #e1bd77; outline-offset: 3px; }
+      .todo-check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1em;
+        height: 1em;
+        border: 1px solid currentColor;
+        border-color: #1e1a15;
+        border-radius: 50%;
+        font-size: 0.85em;
+        color: transparent;
+        vertical-align: middle;
+      }
+      .todo-check.done { color: #1e1a15; }
+      .todo-label.done { text-decoration: line-through; }
+      .todo-section-title { font-weight: 700; }
+      .todo-instruction { font-size: 0.85em; opacity: 0.8; }
       @media (max-width: 480px) {
         .ink-station { right: 12px; }
         .ink-size-panel { width: 180px; right: 68px; }
+        .todo-btn { right: 82px; }
       }
       @media (prefers-reduced-motion: reduce) {
         .ink-bottle { transition: none; }
@@ -709,6 +742,7 @@
 
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
       <div class="lamp-assembly" id="lampAssembly">
+        <button type="button" class="todo-btn" id="todoBtn">할일적기</button>
         <div class="ink-station" id="inkStation">
           <button type="button" class="ink-bottle-btn" id="inkBottleBtn"
             aria-label="잉크병: 글자 크기 조절" aria-expanded="false" aria-controls="inkSizePanel">
@@ -1305,6 +1339,9 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      let todoMode = false;
+      let todoGuideShown = false;
+      const completedTasks = new Set();
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
@@ -1335,7 +1372,7 @@
 
         // 키마다 바로 측정해야 한 프레임 안의 연타도 각자 자리에 찍힌다.
         // 레이어는 종이와 같은 transform 을 따르므로 이동 중이어도 두 사각형의 차이는 종이 기준 좌표다.
-        const targetNode = automata.getComposingChar()
+        const targetNode = automata.getComposingChar() && !todoMode
           ? composingEl
           : cursorAnchor;
         const targetRect = targetNode.getBoundingClientRect();
@@ -1389,10 +1426,50 @@
       }
 
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
+      function renderTodoText(text) {
+        const lines = text.split("\n");
+        const tasks = new Set(lines.map((line) => line.match(/^\-\s+(.+?)(?::\s*|\s*)$/)?.[1]));
+        const pending = new Set(completedTasks);
+        for (const line of lines) {
+          const command = line.match(/^(.+?)\s*:\s*완료$/);
+          if (command && tasks.has(command[1])) pending.add(command[1]);
+        }
+        const fragment = document.createDocumentFragment();
+        lines.forEach((line, index) => {
+          if (index) fragment.appendChild(document.createTextNode("\n"));
+          const match = line.match(/^\-\s+(.+?)(?::\s*|\s*)$/);
+          if (!match) {
+            const note = document.createElement("span");
+            if (line === "완료 목록 적기") note.className = "todo-section-title";
+            if (line.startsWith("할 일을 '") || line.startsWith("완료된 할일은 '")) {
+              note.className = "todo-instruction";
+            }
+            note.textContent = line;
+            fragment.appendChild(note);
+            return;
+          }
+          const done = pending.has(match[1]);
+          const check = document.createElement("span");
+          check.className = `todo-check${done ? " done" : ""}`;
+          check.textContent = "✓";
+          check.setAttribute("aria-hidden", "true");
+          const label = document.createElement("span");
+          label.className = `todo-label${done ? " done" : ""}`;
+          label.textContent = match[1];
+          fragment.append(check, document.createTextNode(" "), label);
+        });
+        committedEl.replaceChildren(fragment);
+      }
+
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
-        composingEl.textContent = comp;
+        if (todoMode) {
+          renderTodoText(committedStr + comp);
+          composingEl.textContent = "";
+        } else {
+          committedEl.textContent = committedStr;
+          composingEl.textContent = comp;
+        }
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
         charCountEl.textContent = totalLen.toLocaleString();
@@ -1403,7 +1480,7 @@
           if (!viewportRect.height) return;
 
           // 조합 중이면 조합 글자의 중심, 아니면 커서 앵커를 기준으로 T자 가이드와 램프를 둔다
-          const targetNode = comp ? composingEl : cursorAnchor;
+          const targetNode = comp && !todoMode ? composingEl : cursorAnchor;
           const targetRect = targetNode.getBoundingClientRect();
 
           const relX =
@@ -1462,7 +1539,23 @@
         if (k === "Enter") {
           sound.playReturnBell();
           triggerStrike();
-          committedStr += automata.flush() + "\n";
+          committedStr += automata.flush();
+          if (todoMode) {
+            const start = committedStr.lastIndexOf("\n") + 1;
+            const command = committedStr.slice(start).match(/^(.+?)\s*:\s*완료$/);
+            const previous = committedStr.slice(0, start).split("\n");
+            if (command && previous.some((line) => line.match(/^\-\s+(.+?)(?::\s*|\s*)$/)?.[1] === command[1])) {
+              completedTasks.add(command[1]);
+              committedStr = committedStr.slice(0, start);
+              updateScreen();
+              return;
+            }
+          }
+          committedStr += "\n";
+          if (todoMode && !todoGuideShown && /^\-\s+.+/.test(committedStr.slice(0, -1).split("\n").at(-1))) {
+            todoGuideShown = true;
+            committedStr += "\n완료 목록 적기\n완료된 할일은 '제목 : 완료'라고 적어주세요.\n";
+          }
           updateScreen();
           return;
         }
@@ -1547,6 +1640,18 @@
 
       // 잉크병 컨트롤은 글 내용과 한글 조합 상태를 바꾸지 않는다.
       const inkStation = document.getElementById("inkStation");
+      document.getElementById("todoBtn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        stopDemo();
+        clearTypeImpacts();
+        automata.reset();
+        todoMode = true;
+        todoGuideShown = false;
+        completedTasks.clear();
+        committedStr = "to do list\n할 일을 '- 제목'으로 적고 내용을 작성해 주세요.\n";
+        updateScreen();
+        desk.focus();
+      });
       const inkBottleBtn = document.getElementById("inkBottleBtn");
       const inkSizePanel = document.getElementById("inkSizePanel");
       const inkSizeSlider = document.getElementById("inkSizeSlider");
@@ -1693,9 +1798,13 @@
       }
 
       function startDemo(resetText = false) {
+        if (todoMode) resetText = true;
         if (resetText) {
           clearTypeImpacts();
           automata.reset();
+          todoMode = false;
+          todoGuideShown = false;
+          completedTasks.clear();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
           updateScreen();
