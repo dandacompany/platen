@@ -3,5 +3,6 @@
 *.key
 *.pem
 .hermes/
+.superpowers/
 .DS_Store
 node_modules/
