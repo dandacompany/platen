@@ -17,6 +17,203 @@
     <style>
       :root {
         --lamp-x: 200px;
+        --paragraph-indent: 2em;
+      }
+
+      .paper-sheet.font-myeongjo,
+      .manuscript-paper.font-myeongjo {
+        font-family: "Nanum Myeongjo", "Gowun Batang", serif;
+      }
+
+      .paper-sheet.font-gothic,
+      .manuscript-paper.font-gothic {
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      }
+
+      .paper-sheet.font-typewriter,
+      .manuscript-paper.font-typewriter {
+        font-family: "Courier Prime", monospace;
+      }
+
+      .ink-text .paragraph {
+        display: block;
+        min-height: 1.65em;
+        text-indent: 0;
+      }
+
+      .ink-text.indent-on .paragraph,
+      .composing-char.indent-on {
+        text-indent: var(--paragraph-indent);
+      }
+
+      .composing-char.paragraph-start {
+        display: inline-block;
+        padding-left: var(--paragraph-indent);
+      }
+
+      .editor-tools {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 22px;
+        z-index: 11;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .editor-tool,
+      .font-select {
+        border: 1px solid rgba(175, 166, 148, 0.35);
+        border-radius: 4px;
+        background: rgba(28, 27, 24, 0.88);
+        color: #d8d0c0;
+        font: 12px "Courier Prime", "Malgun Gothic", monospace;
+        padding: 6px 9px;
+        cursor: pointer;
+      }
+
+      .editor-tool:hover,
+      .font-select:hover,
+      .editor-tool.active {
+        color: #f3c878;
+        border-color: rgba(243, 200, 120, 0.65);
+      }
+
+      .manuscript-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(8, 8, 7, 0.88);
+      }
+
+      .manuscript-modal[hidden] {
+        display: none;
+      }
+
+      .manuscript-dialog {
+        width: min(100%, 920px);
+        max-height: 92vh;
+        overflow: auto;
+        padding: 22px;
+        border: 1px solid #4b4232;
+        border-radius: 8px;
+        background: #25221d;
+        box-shadow: 0 20px 70px rgba(0, 0, 0, 0.75);
+      }
+
+      .manuscript-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        color: #e8d7b4;
+      }
+
+      .manuscript-dialog-header h2 {
+        font: 700 18px "Nanum Myeongjo", serif;
+      }
+
+      .manuscript-dialog-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .manuscript-pages {
+        display: grid;
+        gap: 24px;
+      }
+
+      .manuscript-page {
+        break-after: page;
+        padding: 18px;
+        background: #e8ddc8;
+        color: #292117;
+      }
+
+      .manuscript-page:last-child {
+        break-after: auto;
+      }
+
+      .manuscript-paper {
+        display: grid;
+        grid-template-columns: repeat(20, minmax(0, 1fr));
+        width: 100%;
+        aspect-ratio: 2 / 1;
+        border-top: 1px solid rgba(87, 63, 39, 0.7);
+        border-left: 1px solid rgba(87, 63, 39, 0.7);
+        font-size: clamp(10px, 1.65vw, 18px);
+        line-height: 1;
+      }
+
+      .manuscript-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        border-right: 1px solid rgba(87, 63, 39, 0.7);
+        border-bottom: 1px solid rgba(87, 63, 39, 0.7);
+        white-space: pre;
+      }
+
+      .manuscript-cell.paragraph-break {
+        color: transparent;
+      }
+
+      .manuscript-empty {
+        color: #786b58;
+        font: 12px "Courier Prime", monospace;
+        text-align: right;
+        margin-top: 8px;
+      }
+
+      @media print {
+        body:has(.manuscript-modal:not([hidden])) {
+          background: #fff;
+        }
+
+        body:has(.manuscript-modal:not([hidden])) > *:not(.manuscript-modal) {
+          display: none !important;
+        }
+
+        .manuscript-modal {
+          position: static;
+          display: block;
+          padding: 0;
+          background: #fff;
+        }
+
+        .manuscript-dialog {
+          width: 100%;
+          max-height: none;
+          overflow: visible;
+          padding: 0;
+          border: 0;
+          box-shadow: none;
+          background: #fff;
+        }
+
+        .manuscript-dialog-header,
+        .manuscript-empty {
+          display: none;
+        }
+
+        .manuscript-pages {
+          display: block;
+        }
+
+        .manuscript-page {
+          padding: 0;
+          margin: 0 0 12mm;
+          background: #fff;
+        }
       }
 
       * {
@@ -503,6 +700,22 @@
             <div class="type-guide-base"></div>
           </div>
         </div>
+
+        <div class="editor-tools" aria-label="글쓰기 편집 도구">
+          <button class="editor-tool" id="manuscriptBtn" type="button">
+            원고지 미리보기
+          </button>
+          <button class="editor-tool active" id="indentBtn" type="button">
+            들여쓰기 켬
+          </button>
+          <label>
+            <select class="font-select" id="fontSelect" aria-label="글꼴 선택">
+              <option value="myeongjo">명조체</option>
+              <option value="gothic">고딕체</option>
+              <option value="typewriter">타자기체</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
@@ -593,6 +806,19 @@
           >
         </div>
       </div>
+    </div>
+
+    <div class="manuscript-modal" id="manuscriptModal" hidden>
+      <section class="manuscript-dialog" role="dialog" aria-modal="true" aria-labelledby="manuscriptTitle">
+        <div class="manuscript-dialog-header">
+          <h2 id="manuscriptTitle">200자 원고지 미리보기</h2>
+          <div class="manuscript-dialog-actions">
+            <button class="editor-tool" id="printManuscriptBtn" type="button">인쇄 / PDF 저장</button>
+            <button class="editor-tool" id="closeManuscriptBtn" type="button">닫기</button>
+          </div>
+        </div>
+        <div class="manuscript-pages" id="manuscriptPages"></div>
+      </section>
     </div>
 
     <script>
@@ -971,7 +1197,11 @@
 내일 할 일:
 - 엄마한테 전화
 - 파란 자전거 고치기
-- 책 열 쪽`;
+- 책 열 쪽
+
+들여쓰기 예시 첫 문장입니다.
+Enter로 새 문단을 만들면 이 문장처럼 첫 줄이 안쪽에서 시작합니다.
+원고지 미리보기에서도 세 문단의 첫 줄 들여쓰기가 유지됩니다.`;
 
       // 자모 하나가 키 하나다. 'Enter' 는 줄바꿈, ' ' 는 띄어쓰기.
       const DEMO_SEQUENCE = [
@@ -1076,6 +1306,8 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      let indentEnabled = true;
+      let selectedFont = "myeongjo";
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
@@ -1086,6 +1318,10 @@
       const typeGuide = document.getElementById("typeGuide");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
+      const indentBtn = document.getElementById("indentBtn");
+      const fontSelect = document.getElementById("fontSelect");
+      const manuscriptModal = document.getElementById("manuscriptModal");
+      const manuscriptPages = document.getElementById("manuscriptPages");
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1094,11 +1330,34 @@
         typeGuide.classList.add("strike");
       }
 
+      function renderCommittedText() {
+        committedEl.replaceChildren();
+        committedEl.classList.toggle("indent-on", indentEnabled);
+        committedStr.split("\n").forEach((paragraph) => {
+          const paragraphEl = document.createElement("span");
+          paragraphEl.className = "paragraph";
+          paragraphEl.textContent = paragraph || "\u200b";
+          committedEl.appendChild(paragraphEl);
+        });
+      }
+
+      function updateEditorClasses() {
+        paperSheet.classList.remove("font-myeongjo", "font-gothic", "font-typewriter");
+        paperSheet.classList.add(`font-${selectedFont}`);
+        composingEl.classList.toggle(
+          "paragraph-start",
+          indentEnabled && (committedStr === "" || committedStr.endsWith("\n")),
+        );
+        indentBtn.classList.toggle("active", indentEnabled);
+        indentBtn.textContent = indentEnabled ? "들여쓰기 켬" : "들여쓰기 끔";
+      }
+
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        renderCommittedText();
         composingEl.textContent = comp;
+        updateEditorClasses();
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
         charCountEl.textContent = totalLen.toLocaleString();
@@ -1133,6 +1392,61 @@
 
           updateLightingOverlay(clampedX, viewportRect.height);
         });
+      }
+
+      function manuscriptRows(text) {
+        const rows = [];
+        let row = [];
+        text.split("\n").forEach((paragraph, paragraphIndex) => {
+          if (indentEnabled) row.push("　");
+          Array.from(paragraph).forEach((character) => {
+            row.push(character);
+            if (row.length === 20) {
+              rows.push(row);
+              row = [];
+            }
+          });
+          if (row.length) {
+            rows.push(row);
+            row = [];
+          } else if (paragraph.length === 0 || paragraphIndex < text.split("\n").length - 1) {
+            rows.push([]);
+          }
+        });
+        if (!rows.length) rows.push([]);
+        return rows;
+      }
+
+      function renderManuscriptPreview() {
+        const text = committedStr + automata.getComposingChar();
+        const rows = manuscriptRows(text);
+        const cellsPerPage = 200;
+        manuscriptPages.replaceChildren();
+
+        for (let pageStart = 0; pageStart < rows.length; pageStart += 10) {
+          const page = document.createElement("article");
+          page.className = "manuscript-page";
+          const paper = document.createElement("div");
+          paper.className = `manuscript-paper font-${selectedFont}`;
+          const pageRows = rows.slice(pageStart, pageStart + 10);
+          const cells = pageRows.flatMap((currentRow) => [
+            ...currentRow,
+            ...Array(Math.max(0, 20 - currentRow.length)).fill(""),
+          ]);
+          while (cells.length < cellsPerPage) cells.push("");
+          cells.slice(0, cellsPerPage).forEach((character) => {
+            const cell = document.createElement("span");
+            cell.className = "manuscript-cell";
+            cell.textContent = character;
+            paper.appendChild(cell);
+          });
+          page.appendChild(paper);
+          const pageLabel = document.createElement("div");
+          pageLabel.className = "manuscript-empty";
+          pageLabel.textContent = `${Math.floor(pageStart / 10) + 1}쪽 · 200자 원고지`;
+          page.appendChild(pageLabel);
+          manuscriptPages.appendChild(page);
+        }
       }
 
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
@@ -1392,6 +1706,47 @@
         once: true,
       });
       window.addEventListener("resize", () => updateScreen());
+
+      indentBtn.addEventListener("click", () => {
+        indentEnabled = !indentEnabled;
+        updateScreen();
+        desk.focus();
+      });
+
+      fontSelect.addEventListener("change", () => {
+        selectedFont = fontSelect.value;
+        updateScreen();
+        desk.focus();
+      });
+
+      document.getElementById("manuscriptBtn").addEventListener("click", () => {
+        stopDemo();
+        renderManuscriptPreview();
+        manuscriptModal.hidden = false;
+      });
+
+      document.getElementById("closeManuscriptBtn").addEventListener("click", () => {
+        manuscriptModal.hidden = true;
+        desk.focus();
+      });
+
+      document.getElementById("printManuscriptBtn").addEventListener("click", () => {
+        window.print();
+      });
+
+      manuscriptModal.addEventListener("click", (event) => {
+        if (event.target === manuscriptModal) {
+          manuscriptModal.hidden = true;
+          desk.focus();
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !manuscriptModal.hidden) {
+          manuscriptModal.hidden = true;
+          desk.focus();
+        }
+      });
 
       // 초기 실행
       updateScreen();
