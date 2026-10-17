@@ -1301,6 +1301,45 @@
       ];
 
       /* =========================================================================
+   3-1. 단어별 이모티콘 사전
+   띄어쓰기(스페이스)나 줄바꿈(Enter)으로 단어가 완성되는 순간,
+   바로 앞 단어가 이 사전에 있으면 뒤에 이모티콘이 붙는다.
+   ========================================================================= */
+      const WORD_EMOJI = {
+        사랑: "❤️",
+        커피: "☕",
+        차: "🍵",
+        비: "🌧️",
+        눈: "❄️",
+        밤: "🌙",
+        해: "☀️",
+        별: "⭐",
+        책: "📖",
+        음악: "🎵",
+        꿈: "💭",
+        고양이: "🐱",
+        강아지: "🐶",
+        생일: "🎂",
+        행복: "😊",
+        눈물: "😢",
+        축하: "🎉",
+        자전거: "🚲",
+        여행: "✈️",
+        바다: "🌊",
+        꽃: "🌸",
+        나무: "🌳",
+        전화: "📞",
+        편지: "✉️",
+      };
+
+      // 문자열 맨 끝 단어(공백 전까지)를 사전에서 찾아 이모티콘을 돌려준다. 없으면 빈 문자열.
+      function getWordEmoji(str) {
+        const match = str.match(/(\S+)$/);
+        const word = match ? match[1] : "";
+        return WORD_EMOJI[word] || "";
+      }
+
+      /* =========================================================================
    4. 화면 상태
    ========================================================================= */
       const automata = new HangulAutomata();
@@ -1439,13 +1478,28 @@
       document.fonts.ready.then(() => updateScreen());
       document.fonts.addEventListener("loadingdone", () => updateScreen());
 
+      // 이모티콘처럼 코드 유닛이 여러 개인 글자도 한 번에 지우기 위한 그래프임 분리기
+      const graphemeSegmenter =
+        typeof Intl !== "undefined" && Intl.Segmenter
+          ? new Intl.Segmenter("ko", { granularity: "grapheme" })
+          : null;
+
+      // 문자열 맨 끝 "한 글자"를 지운다. 이모티콘이 코드 유닛 여러 개로 되어 있어도 통째로 지워진다.
+      function popLastChar(str) {
+        if (!str) return str;
+        if (!graphemeSegmenter) return str.slice(0, -1);
+        const chars = Array.from(graphemeSegmenter.segment(str), (s) => s.segment);
+        chars.pop();
+        return chars.join("");
+      }
+
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
         if (k === "BACK") {
           sound.playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
-            committedStr = committedStr.slice(0, -1);
+            committedStr = popLastChar(committedStr);
           }
           updateScreen();
           return;
@@ -1454,7 +1508,8 @@
         if (k === " ") {
           sound.playKeyClick(true);
           triggerStrike();
-          committedStr += automata.flush() + " ";
+          committedStr += automata.flush();
+          committedStr += getWordEmoji(committedStr) + " ";
           updateScreen();
           return;
         }
@@ -1462,7 +1517,8 @@
         if (k === "Enter") {
           sound.playReturnBell();
           triggerStrike();
-          committedStr += automata.flush() + "\n";
+          committedStr += automata.flush();
+          committedStr += getWordEmoji(committedStr) + "\n";
           updateScreen();
           return;
         }
