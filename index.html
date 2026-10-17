@@ -584,6 +584,10 @@
               <option value="warm">따뜻한 전구</option>
               <option value="neutral">중립 조명</option>
               <option value="cool">차가운 달빛</option>
+              <option value="bright">밝은 전구</option>
+              <option value="green">초록 조명</option>
+              <option value="blue">파랑 조명</option>
+              <option value="red">빨강 조명</option>
             </select>
           </div>
 
@@ -1217,20 +1221,44 @@
         warm: {
           core: "#ffd885",
           glow: "#e09638",
-          light: "255, 232, 175",
-          mid: "255, 214, 140",
+          light: "255, 220, 120",
+          mid: "255, 174, 60",
         },
         neutral: {
           core: "#fff4d6",
           glow: "#d9c28b",
-          light: "255, 248, 220",
-          mid: "239, 226, 187",
+          light: "255, 250, 220",
+          mid: "245, 226, 170",
         },
         cool: {
           core: "#b9d8ff",
           glow: "#668ed0",
-          light: "190, 220, 255",
-          mid: "145, 185, 242",
+          light: "150, 205, 255",
+          mid: "75, 145, 235",
+        },
+        bright: {
+          core: "#fff7b0",
+          glow: "#ffbf38",
+          light: "255, 248, 150",
+          mid: "255, 190, 55",
+        },
+        green: {
+          core: "#b6ff9b",
+          glow: "#39c96b",
+          light: "105, 255, 120",
+          mid: "25, 190, 80",
+        },
+        blue: {
+          core: "#9fdcff",
+          glow: "#2688ff",
+          light: "80, 180, 255",
+          mid: "30, 105, 230",
+        },
+        red: {
+          core: "#ffaaa0",
+          glow: "#f04444",
+          light: "255, 90, 80",
+          mid: "205, 35, 45",
         },
       };
 
@@ -1276,10 +1304,10 @@
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(${lampColor.light}, 0.28) 0%,
-      rgba(${lampColor.mid}, 0.12) ${coreStop}%,
-      rgba(22, 20, 17, 0.48) ${midStop}%,
-      rgba(14, 13, 11, 0.78) 100%
+      rgba(${lampColor.light}, 0.48) 0%,
+      rgba(${lampColor.mid}, 0.25) ${coreStop}%,
+      rgba(22, 20, 17, 0.36) ${midStop}%,
+      rgba(14, 13, 11, 0.68) 100%
     )
   `;
       }
