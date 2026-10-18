@@ -190,7 +190,11 @@
       }
 
       .paper-sheet.paper-turning {
-        animation: paperTurn 460ms cubic-bezier(0.22, 0.8, 0.3, 1);
+        animation: paperTearOut 460ms cubic-bezier(0.22, 0.8, 0.3, 1);
+      }
+
+      .paper-sheet.paper-arriving {
+        animation: paperRiseIn 360ms cubic-bezier(0.22, 1, 0.36, 1);
       }
 
       .paper-viewport.paper-near-limit .paper-sheet::after {
@@ -207,10 +211,15 @@
         pointer-events: none;
       }
 
-      @keyframes paperTurn {
+      @keyframes paperTearOut {
         0% { transform: var(--paper-translate) rotateX(0); opacity: 1; }
-        45% { transform: var(--paper-translate) translateY(-14px) rotateX(12deg); opacity: 0.72; }
-        100% { transform: var(--paper-translate) rotateX(0); opacity: 1; }
+        38% { transform: var(--paper-translate) translateY(-14px) rotate(-2deg); opacity: 0.78; }
+        100% { transform: var(--paper-translate) translateY(-120%) rotate(-8deg); opacity: 0; }
+      }
+
+      @keyframes paperRiseIn {
+        0% { transform: var(--paper-translate) translateY(100%); opacity: 0; }
+        100% { transform: var(--paper-translate) translateY(0); opacity: 1; }
       }
 
       @keyframes paperCurl {
@@ -691,6 +700,7 @@
       }
       @media (prefers-reduced-motion: reduce) {
         .paper-sheet.paper-turning,
+        .paper-sheet.paper-arriving,
         .paper-viewport.paper-near-limit .paper-sheet::after {
           animation: none;
         }
@@ -1004,6 +1014,39 @@
             });
           } catch (e) {}
         }
+
+        playPaperTear() {
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
+            const duration = 0.32;
+            const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i += 1) {
+              const progress = i / bufferSize;
+              data[i] = (Math.random() * 2 - 1) * (0.7 - progress * 0.45);
+            }
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.setValueAtTime(1450, now);
+            filter.frequency.exponentialRampToValueAtTime(520, now + duration);
+            filter.Q.setValueAtTime(0.8, now);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(0.42, now + 0.025);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(now);
+            noise.stop(now + duration);
+          } catch (e) {}
+        }
       }
 
       const sound = new TypewriterAudio();
@@ -1278,6 +1321,42 @@
 - 파란 자전거 고치기
 - 책 열 쪽`;
 
+      // file://로 직접 열 때는 브라우저가 fetch를 차단하므로 내장 데이터를 사용한다.
+      const LOCAL_QUOTES = [
+        { text: "배우고 때때로 익히면 또한 기쁘지 아니한가.", author: "공자" },
+        { text: "천 리 길도 한 걸음부터 시작된다.", author: "노자" },
+        { text: "가장 큰 영광은 넘어지지 않는 데 있지 않고 다시 일어나는 데 있다.", author: "공자" },
+        { text: "오늘 할 수 있는 일을 내일로 미루지 마라.", author: "벤저민 프랭클린" },
+        { text: "행복은 준비된 마음에 깃든다.", author: "세네카" },
+        { text: "우리는 생각하는 대로 된다.", author: "마르쿠스 아우렐리우스" },
+        { text: "의심하는 것이 곧 철학하는 것이다.", author: "데카르트" },
+        { text: "마음은 그 자체로 한 장소이며 지옥을 천국으로 만들 수 있다.", author: "밀턴" },
+        { text: "인간은 생각하는 갈대다.", author: "파스칼" },
+        { text: "한 사람이 가진 가장 큰 힘은 스스로를 다스리는 힘이다.", author: "톨스토이" },
+        { text: "성공은 열정을 잃지 않고 실패를 거듭하는 것이다.", author: "처칠" },
+        { text: "작은 기회로부터 종종 위대한 성취가 시작된다.", author: "데모스테네스" },
+        { text: "행동이 모든 성공의 기초다.", author: "파스칼" },
+        { text: "아는 자는 말하지 않고 말하는 자는 알지 못한다.", author: "노자" },
+        { text: "뜻이 있는 곳에 길이 있다.", author: "이순신" },
+        { text: "지나간 것은 지나간 대로 의미가 있다.", author: "정약용" },
+        { text: "스스로를 이기는 사람이 가장 강한 사람이다.", author: "노자" },
+        { text: "시간은 가장 현명한 상담자다.", author: "페리클레스" },
+        { text: "아무것도 하지 않으면 아무것도 달라지지 않는다.", author: "괴테" },
+        { text: "모든 어려움은 기회와 함께 온다.", author: "알베르트 아인슈타인" },
+        { text: "꿈을 이루는 가장 좋은 방법은 깨어 있는 것이다.", author: "괴테" },
+        { text: "인생은 가까이서 보면 비극이고 멀리서 보면 희극이다.", author: "찰리 채플린" },
+        { text: "배움에는 끝이 없다.", author: "공자" },
+        { text: "용기는 두려움이 없는 것이 아니라 두려움을 이기는 것이다.", author: "넬슨 만델라" },
+        { text: "기회는 준비된 사람에게만 찾아온다.", author: "세네카" },
+        { text: "자신을 믿어라. 그러면 무엇이든 할 수 있다.", author: "괴테" },
+        { text: "가장 어두운 밤도 끝나고 해는 떠오른다.", author: "빅토르 위고" },
+        { text: "성실함은 모든 재능을 능가한다.", author: "톨스토이" },
+        { text: "길을 잃었다면 돌아갈 수 있는 길부터 찾으면 된다.", author: "정약용" },
+        { text: "평온함은 외부가 아니라 마음에서 온다.", author: "마르쿠스 아우렐리우스" },
+        { text: "오늘의 작은 실천이 내일의 큰 변화를 만든다.", author: "공자" },
+        { text: "지혜는 경험에서 자라고 성찰에서 깊어진다.", author: "세네카" },
+      ];
+
       // 자모 하나가 키 하나다. 'Enter' 는 줄바꿈, ' ' 는 띄어쓰기.
       const DEMO_SEQUENCE = [
         " ",
@@ -1394,10 +1473,11 @@
       const soundToggleBtn = document.getElementById("soundToggleBtn");
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
-      const PAPER_LIMIT = 500;
-      const PAPER_WARNING_THRESHOLD = 450;
-      let paperPageStart = 0;
+      const PAPER_LINES = 5;
+      const PAPER_WARNING_THRESHOLD = 4;
+      let paperPageStartLine = 0;
       let paperTurnTimer = null;
+      let paperArrivalTimer = null;
       let isPaperTurning = false;
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
@@ -1410,6 +1490,10 @@
 
       function playReturnBell() {
         if (isSoundOn) sound.playReturnBell();
+      }
+
+      function playPaperTear() {
+        if (isSoundOn) sound.playPaperTear();
       }
 
       // T자 활자 타격 애니메이션
@@ -1470,43 +1554,50 @@
 
       function resetPaper() {
         if (paperTurnTimer) clearTimeout(paperTurnTimer);
+        if (paperArrivalTimer) clearTimeout(paperArrivalTimer);
         paperTurnTimer = null;
-        paperPageStart = 0;
+        paperArrivalTimer = null;
+        paperPageStartLine = 0;
         isPaperTurning = false;
         paperSheet.classList.remove("paper-turning");
+        paperSheet.classList.remove("paper-arriving");
         paperViewport.classList.remove("paper-near-limit");
       }
 
       function requestPaperTurn() {
-        if (isPaperTurning || committedStr.length - paperPageStart < PAPER_LIMIT) return;
+        const lineCount = committedStr.split("\n").length;
+        if (isPaperTurning || lineCount - paperPageStartLine <= PAPER_LINES) return;
         if (reducedMotionQuery.matches) {
-          paperPageStart += PAPER_LIMIT;
+          paperPageStartLine += PAPER_LINES;
           updateScreen();
           return;
         }
         isPaperTurning = true;
         paperSheet.classList.add("paper-turning");
+        playPaperTear();
         paperTurnTimer = setTimeout(() => {
-          paperPageStart += PAPER_LIMIT;
+          paperPageStartLine += PAPER_LINES;
           isPaperTurning = false;
           paperTurnTimer = null;
           paperSheet.classList.remove("paper-turning");
           updateScreen();
+          paperSheet.classList.add("paper-arriving");
+          paperArrivalTimer = setTimeout(() => {
+            paperSheet.classList.remove("paper-arriving");
+            paperArrivalTimer = null;
+          }, 360);
         }, 460);
       }
 
       function updatePaperState() {
-        const pageLength = committedStr.length - paperPageStart;
-        if (!isPaperTurning && pageLength < 0) {
-          paperPageStart = Math.max(
-            0,
-            Math.floor(Math.max(committedStr.length - 1, 0) / PAPER_LIMIT) * PAPER_LIMIT,
-          );
+        const lines = committedStr.split("\n");
+        if (!isPaperTurning && paperPageStartLine >= lines.length) {
+          paperPageStartLine = Math.max(0, lines.length - 1);
         }
-        const currentPageLength = committedStr.length - paperPageStart;
+        const currentPageLineCount = lines.length - paperPageStartLine;
         paperViewport.classList.toggle(
           "paper-near-limit",
-          currentPageLength >= PAPER_WARNING_THRESHOLD && currentPageLength < PAPER_LIMIT,
+          currentPageLineCount >= PAPER_WARNING_THRESHOLD && currentPageLineCount <= PAPER_LINES,
         );
         requestPaperTurn();
       }
@@ -1537,7 +1628,7 @@
       function updateScreen() {
         const comp = automata.getComposingChar();
         updatePaperState();
-        committedEl.textContent = committedStr.slice(paperPageStart);
+        committedEl.textContent = committedStr.split("\n").slice(paperPageStartLine).join("\n");
         composingEl.textContent = comp;
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
@@ -1837,13 +1928,17 @@
       let isDemoRunning = true;
       let isDemoComplete = false;
       let demoText = "";
+      let demoRunToken = 0;
       const demoToggleBtn = document.getElementById("demoToggleBtn");
       const quoteNextBtn = document.getElementById("quoteNextBtn");
 
       async function pickQuote() {
-        const response = await fetch("./quotes.ko.json");
-        if (!response.ok) throw new Error("명언 데이터를 불러오지 못했습니다.");
-        const quotes = await response.json();
+        let quotes = LOCAL_QUOTES;
+        if (window.location.protocol !== "file:") {
+          const response = await fetch("./quotes.ko.json");
+          if (!response.ok) throw new Error("명언 데이터를 불러오지 못했습니다.");
+          quotes = await response.json();
+        }
         const previous = Number(localStorage.getItem("platen:lastQuoteIndex"));
         const daily = new URLSearchParams(window.location.search).get("quote") === "daily";
         let index;
@@ -1871,8 +1966,8 @@
         quoteNextBtn.hidden = false;
       }
 
-      function stepDemo() {
-        if (!isDemoRunning) return;
+      function stepDemo(runToken) {
+        if (!isDemoRunning || runToken !== demoRunToken) return;
         if (demoIdx >= demoText.length) {
           finishDemo();
           return;
@@ -1882,28 +1977,34 @@
         let delay = 145 + Math.random() * 70;
         if (char === "\n") delay = 420;
         else if (char === " ") delay = 200;
-        demoTimer = setTimeout(stepDemo, delay);
+        demoTimer = setTimeout(() => stepDemo(runToken), delay);
       }
 
       function stopDemo() {
         if (!isDemoRunning) return;
         isDemoRunning = false;
+        demoRunToken += 1;
         if (demoTimer) clearTimeout(demoTimer);
+        demoTimer = null;
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
 
       async function startDemo(resetText = false) {
+        if (isDemoRunning) stopDemo();
+        const runToken = ++demoRunToken;
         if (resetText) {
           clearTypeImpacts();
           resetPaper();
           automata.reset();
           committedStr = INITIAL_TEXT;
+          paperPageStartLine = Math.max(0, committedStr.split("\n").length - 1);
           demoIdx = 0;
           isDemoComplete = false;
           quoteNextBtn.hidden = true;
           updateScreen();
         }
         demoText = await pickQuote();
+        if (runToken !== demoRunToken) return;
         demoIdx = 0;
         isDemoRunning = true;
         demoToggleBtn.textContent = "자동 타이핑 중 ⏸";
@@ -1913,7 +2014,7 @@
           finishDemo();
           return;
         }
-        demoTimer = setTimeout(stepDemo, 450);
+        demoTimer = setTimeout(() => stepDemo(runToken), 450);
       }
 
       demoToggleBtn.addEventListener("click", (e) => {
