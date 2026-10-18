@@ -176,30 +176,25 @@
         left: 0;
         right: 0;
         top: 0;
-        min-height: 100%;
         padding: 48px 76px 160px 84px;
-        background: #d2c9b6;
         font-family: "Gowun Batang", "Nanum Myeongjo", serif;
         font-size: 18px;
         line-height: 30px;
         color: #1e1a15;
         letter-spacing: -0.01em;
-        transition: top 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
         z-index: 1;
         white-space: pre-wrap;
         word-break: break-all;
         transform-origin: bottom center;
-        box-shadow: 0 -18px 28px rgba(91, 74, 51, 0.22);
       }
 
       .paper-sheet.paper-turning {
         animation: paperTearOut 460ms cubic-bezier(0.22, 0.8, 0.3, 1);
-        animation-fill-mode: both;
       }
 
       .paper-sheet.paper-arriving {
         animation: paperRiseIn 360ms cubic-bezier(0.22, 1, 0.36, 1);
-        animation-fill-mode: both;
       }
 
       .paper-viewport.paper-near-limit .paper-sheet::after {
@@ -217,14 +212,14 @@
       }
 
       @keyframes paperTearOut {
-        0% { top: var(--paper-top, 0px); opacity: 1; }
-        38% { top: calc(var(--paper-top, 0px) - 14px); opacity: 0.78; }
-        100% { top: calc(var(--paper-top, 0px) - 120%); opacity: 0; }
+        0% { transform: var(--paper-translate) rotateX(0); opacity: 1; }
+        38% { transform: var(--paper-translate) translateY(-14px) rotate(-2deg); opacity: 0.78; }
+        100% { transform: var(--paper-translate) translateY(-120%) rotate(-8deg); opacity: 0; }
       }
 
       @keyframes paperRiseIn {
-        0% { top: calc(var(--paper-top, 0px) + 100%); opacity: 0; }
-        100% { top: var(--paper-top, 0px); opacity: 1; }
+        0% { transform: var(--paper-translate) translateY(100%); opacity: 0; }
+        100% { transform: var(--paper-translate) translateY(0); opacity: 1; }
       }
 
       @keyframes paperCurl {
@@ -733,6 +728,7 @@
         color: #c9c3b6;
         background: #23221f;
       }
+
     </style>
   </head>
   <body>
@@ -752,6 +748,7 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
@@ -1299,23 +1296,118 @@
       /* =========================================================================
    3. 초기 텍스트 & 자동 타이핑 데모 시나리오
    ========================================================================= */
-      const INITIAL_TEXT = "";
-      const DEMO_TEXT = `If this life is one act
-Why do we lay all these traps?
-We put them right in our path
-When we just wanna be free
-I will not waste my days
-Making up all kinds of ways
-To worry 'bout all the things
-That will not happen to me
-So I just let go of what I know I don't know
-And I know I'll only do this by
-Living in the moment`;
+      const INITIAL_TEXT = `10월 13일, 밤 11시 48분.
+집이 조용하다. 램프와 나,
+그리고 식어 가는 차 한 잔뿐.
 
-      // 한 글자씩 출력한다. 줄바꿈은 자동 타이핑의 Enter 키로 바꾼다.
-      const DEMO_SEQUENCE = [...DEMO_TEXT].map((char) =>
-        char === "\n" ? "Enter" : char,
-      );
+오늘 배운 세 가지:
+1. 작은 걸음도 쌓인다.
+2. 짐작하지 말고 묻기.
+3. 쉬는 것도 일이다.
+
+내일 할 일:
+- 엄마한테 전화
+- 파란 자전거 고치기
+- 책 열 쪽`;
+
+
+      // 자모 하나가 키 하나다. 'Enter' 는 줄바꿈, ' ' 는 띄어쓰기.
+      const DEMO_SEQUENCE = [
+        " ",
+        "ㅇ",
+        "ㅣ",
+        "ㄹ",
+        "ㄱ",
+        "ㄱ",
+        "ㅣ",
+        "Enter",
+        "-",
+        " ",
+        "ㅂ",
+        "ㅏ",
+        "ㅈ",
+        "ㅣ",
+        "ㄹ",
+        "ㅇ",
+        "ㅔ",
+        " ",
+        "ㅁ",
+        "ㅜ",
+        "ㄹ",
+        " ",
+        "ㅈ",
+        "ㅜ",
+        "ㄱ",
+        "ㅣ",
+        "Enter",
+        "Enter",
+        "ㄱ",
+        "ㅏ",
+        "ㄴ",
+        "ㅈ",
+        "ㅣ",
+        "ㄱ",
+        "ㅎ",
+        "ㅏ",
+        "ㄹ",
+        " ",
+        "ㅎ",
+        "ㅏ",
+        "ㄴ",
+        " ",
+        "ㅈ",
+        "ㅜ",
+        "ㄹ",
+        ":",
+        "Enter",
+        '"',
+        "ㅈ",
+        "ㅓ",
+        "ㄱ",
+        "ㅇ",
+        "ㅓ",
+        " ",
+        "ㄷ",
+        "ㅜ",
+        "ㅁ",
+        "ㅕ",
+        "ㄴ",
+        " ",
+        "ㄴ",
+        "ㅏ",
+        "ㅁ",
+        "ㄴ",
+        "ㅡ",
+        "ㄴ",
+        "ㄷ",
+        "ㅏ",
+        ".",
+        '"',
+        "Enter",
+        "Enter",
+        "ㅈ",
+        "ㅏ",
+        "ㄹ",
+        "ㅈ",
+        "ㅏ",
+        ",",
+        " ",
+        "ㅈ",
+        "ㅏ",
+        "ㄱ",
+        "ㅇ",
+        "ㅡ",
+        "ㄴ",
+        " ",
+        "ㄹ",
+        "ㅐ",
+        "ㅁ",
+        "ㅍ",
+        "ㅡ",
+        "ㅇ",
+        "ㅑ",
+        ".",
+      ];
 
       /* =========================================================================
    4. 화면 상태
@@ -1522,9 +1614,10 @@ Living in the moment`;
           const anchorOffsetTop = cursorAnchor.offsetTop;
           const targetPrintLineY = viewportRect.height - 66;
           const translateY = targetPrintLineY - anchorOffsetTop;
-          paperSheet.style.setProperty("--paper-top", `${translateY}px`);
-          paperSheet.style.top = `${translateY}px`;
-          typeImpactLayer.style.top = `${translateY}px`;
+          const paperTransform = `translateY(${translateY}px)`;
+          paperSheet.style.setProperty("--paper-translate", paperTransform);
+          paperSheet.style.transform = paperTransform;
+          typeImpactLayer.style.transform = paperSheet.style.transform;
 
           updateLightingOverlay(clampedX, viewportRect.height);
         });
@@ -1577,6 +1670,7 @@ Living in the moment`;
         updateScreen();
         triggerTypeImpact();
       }
+
 
       /* =========================================================================
    5. 나이트 램프(조명 초점 / 확산 / 거리) 효과
@@ -1771,7 +1865,6 @@ Living in the moment`;
       let demoIdx = 0;
       let isDemoRunning = true;
       let isDemoComplete = false;
-      let demoRunToken = 0;
       const demoToggleBtn = document.getElementById("demoToggleBtn");
 
       function finishDemo() {
@@ -1780,8 +1873,8 @@ Living in the moment`;
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
 
-      function stepDemo(runToken) {
-        if (!isDemoRunning || runToken !== demoRunToken) return;
+      function stepDemo() {
+        if (!isDemoRunning) return;
         if (demoIdx >= DEMO_SEQUENCE.length) {
           finishDemo();
           return;
@@ -1791,21 +1884,19 @@ Living in the moment`;
         let delay = 145 + Math.random() * 70;
         if (key === "Enter") delay = 420;
         else if (key === " ") delay = 200;
-        demoTimer = setTimeout(() => stepDemo(runToken), delay);
+        demoTimer = setTimeout(stepDemo, delay);
       }
 
       function stopDemo() {
         if (!isDemoRunning) return;
         isDemoRunning = false;
-        demoRunToken += 1;
         if (demoTimer) clearTimeout(demoTimer);
         demoTimer = null;
         demoToggleBtn.textContent = "자동 타이핑 ▶";
       }
 
-      async function startDemo(resetText = false) {
+      function startDemo(resetText = false) {
         if (isDemoRunning) stopDemo();
-        const runToken = ++demoRunToken;
         if (resetText) {
           clearTypeImpacts();
           resetPaper();
@@ -1816,16 +1907,10 @@ Living in the moment`;
           isDemoComplete = false;
           updateScreen();
         }
-        demoIdx = 0;
         isDemoRunning = true;
         demoToggleBtn.textContent = "자동 타이핑 중 ⏸";
         if (demoTimer) clearTimeout(demoTimer);
-        if (reducedMotionQuery.matches) {
-          for (const key of DEMO_SEQUENCE) handleKey(key);
-          finishDemo();
-          return;
-        }
-        demoTimer = setTimeout(() => stepDemo(runToken), 450);
+        demoTimer = setTimeout(stepDemo, 450);
       }
 
       demoToggleBtn.addEventListener("click", (e) => {
@@ -1835,6 +1920,7 @@ Living in the moment`;
         else startDemo(false);
         desk.focus();
       });
+
 
       document.getElementById("clearBtn").addEventListener("click", () => {
         sound.init();
