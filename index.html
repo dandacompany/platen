@@ -186,6 +186,26 @@
         z-index: 1;
         white-space: pre-wrap;
         word-break: break-all;
+        transform-origin: bottom center;
+      }
+
+      .paper-sheet.paper-turning {
+        animation: paperTearOut 460ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+      }
+
+      .paper-sheet.paper-arriving {
+        animation: paperRiseIn 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes paperTearOut {
+        0% { transform: var(--paper-translate) rotateX(0); opacity: 1; }
+        38% { transform: var(--paper-translate) translateY(-14px) rotate(-2deg); opacity: 0.78; }
+        100% { transform: var(--paper-translate) translateY(-120%) rotate(-8deg); opacity: 0; }
+      }
+
+      @keyframes paperRiseIn {
+        0% { transform: var(--paper-translate) translateY(100%); opacity: 0; }
+        100% { transform: var(--paper-translate) translateY(0); opacity: 1; }
       }
 
       .ink-text {
@@ -1320,6 +1340,45 @@
       const reducedMotionQuery = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       );
+      let paperPageStartLine = 0;
+      let paperTurnTimer = null;
+      let paperArrivalTimer = null;
+      let isPaperTurning = false;
+
+      function resetPaper() {
+        if (paperTurnTimer) clearTimeout(paperTurnTimer);
+        if (paperArrivalTimer) clearTimeout(paperArrivalTimer);
+        paperTurnTimer = null;
+        paperArrivalTimer = null;
+        paperPageStartLine = 0;
+        isPaperTurning = false;
+        paperSheet.classList.remove("paper-turning", "paper-arriving");
+      }
+
+      function requestPaperTurn() {
+        if (isPaperTurning) return;
+        const lineCount = committedStr.split("\n").length;
+        const nextPageStartLine = Math.max(0, lineCount - 1);
+        if (reducedMotionQuery.matches) {
+          paperPageStartLine = nextPageStartLine;
+          updateScreen();
+          return;
+        }
+        isPaperTurning = true;
+        paperSheet.classList.add("paper-turning");
+        paperTurnTimer = setTimeout(() => {
+          paperPageStartLine = nextPageStartLine;
+          isPaperTurning = false;
+          paperTurnTimer = null;
+          paperSheet.classList.remove("paper-turning");
+          updateScreen();
+          paperSheet.classList.add("paper-arriving");
+          paperArrivalTimer = setTimeout(() => {
+            paperSheet.classList.remove("paper-arriving");
+            paperArrivalTimer = null;
+          }, 360);
+        }, 460);
+      }
 
       // T자 활자 타격 애니메이션
       function triggerStrike() {
@@ -1391,7 +1450,10 @@
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        committedEl.textContent = committedStr
+          .split("\n")
+          .slice(paperPageStartLine)
+          .join("\n");
         composingEl.textContent = comp;
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
@@ -1423,7 +1485,9 @@
           const anchorOffsetTop = cursorAnchor.offsetTop;
           const targetPrintLineY = viewportRect.height - 66;
           const translateY = targetPrintLineY - anchorOffsetTop;
-          paperSheet.style.transform = `translateY(${translateY}px)`;
+          const paperTransform = `translateY(${translateY}px)`;
+          paperSheet.style.setProperty("--paper-translate", paperTransform);
+          paperSheet.style.transform = paperTransform;
           typeImpactLayer.style.transform = paperSheet.style.transform;
 
           updateLightingOverlay(clampedX, viewportRect.height);
@@ -1464,6 +1528,7 @@
           triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
+          requestPaperTurn();
           return;
         }
 
@@ -1698,6 +1763,7 @@
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
+          resetPaper();
           updateScreen();
         }
         isDemoRunning = true;
