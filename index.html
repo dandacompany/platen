@@ -182,7 +182,10 @@
         line-height: 30px;
         color: #1e1a15;
         letter-spacing: -0.01em;
+        background: #e4dac6;
+        box-shadow: 0 18px 30px rgba(46, 35, 23, 0.22);
         transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform, opacity;
         z-index: 1;
         white-space: pre-wrap;
         word-break: break-all;
@@ -1350,6 +1353,9 @@
         if (paperArrivalTimer) clearTimeout(paperArrivalTimer);
         paperTurnTimer = null;
         paperArrivalTimer = null;
+        if (demoResumeTimer) clearTimeout(demoResumeTimer);
+        demoResumeTimer = null;
+        resumeDemoAfterTurn = false;
         paperPageStartLine = 0;
         isPaperTurning = false;
         paperSheet.classList.remove("paper-turning", "paper-arriving");
@@ -1362,12 +1368,20 @@
         if (reducedMotionQuery.matches) {
           paperPageStartLine = nextPageStartLine;
           updateScreen();
+          if (resumeDemoAfterTurn) {
+            resumeDemoAfterTurn = false;
+            scheduleDemoResume();
+          }
           return;
         }
         isPaperTurning = true;
         paperSheet.classList.add("paper-turning");
         paperTurnTimer = setTimeout(() => {
-          paperPageStartLine = nextPageStartLine;
+          // 애니메이션 중 추가된 Enter까지 반영해 최신 페이지로 이동한다.
+          paperPageStartLine = Math.max(
+            0,
+            committedStr.split("\n").length - 1,
+          );
           isPaperTurning = false;
           paperTurnTimer = null;
           paperSheet.classList.remove("paper-turning");
@@ -1376,6 +1390,10 @@
           paperArrivalTimer = setTimeout(() => {
             paperSheet.classList.remove("paper-arriving");
             paperArrivalTimer = null;
+            if (resumeDemoAfterTurn) {
+              resumeDemoAfterTurn = false;
+              scheduleDemoResume();
+            }
           }, 360);
         }, 460);
       }
@@ -1509,7 +1527,14 @@
           sound.playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
+            const removedPageBoundary =
+              committedStr.endsWith("\n") &&
+              paperPageStartLine > 0 &&
+              paperPageStartLine === committedStr.split("\n").length - 1;
             committedStr = committedStr.slice(0, -1);
+            if (removedPageBoundary) {
+              paperPageStartLine -= 1;
+            }
           }
           updateScreen();
           return;
@@ -1688,6 +1713,17 @@
           return;
 
         const isEnterKey = e.code === "Enter" || e.key === "Enter";
+        const isTypingKey =
+          e.code === "Backspace" ||
+          e.code === "Space" ||
+          Boolean(CODE_TO_JAMO[e.code]) ||
+          Boolean(e.key && e.key.length === 1 && e.key !== "Process");
+        if (isTypingKey) {
+          hasManualInput = true;
+          resumeDemoAfterTurn = false;
+          if (demoResumeTimer) clearTimeout(demoResumeTimer);
+          demoResumeTimer = null;
+        }
         if (!isEnterKey) stopDemo();
 
         if (e.code === "Backspace" || e.key === "Backspace") {
@@ -1698,6 +1734,10 @@
 
         if (e.code === "Enter" || e.key === "Enter") {
           e.preventDefault();
+          resumeDemoAfterTurn =
+            hasManualInput &&
+            !isDemoRunning &&
+            demoIdx < DEMO_SEQUENCE.length;
           handleKey("Enter");
           return;
         }
@@ -1729,6 +1769,9 @@
    7. 자동 타이핑 데모
    ========================================================================= */
       let demoTimer = null;
+      let demoResumeTimer = null;
+      let resumeDemoAfterTurn = false;
+      let hasManualInput = false;
       let demoIdx = 0;
       let isDemoRunning = true;
       const demoToggleBtn = document.getElementById("demoToggleBtn");
@@ -1756,6 +1799,20 @@
         isDemoRunning = false;
         if (demoTimer) clearTimeout(demoTimer);
         demoToggleBtn.textContent = "자동 타이핑 ▶";
+      }
+
+      function scheduleDemoResume() {
+        if (demoResumeTimer) clearTimeout(demoResumeTimer);
+        demoResumeTimer = setTimeout(() => {
+          demoResumeTimer = null;
+          if (
+            hasManualInput &&
+            !isDemoRunning &&
+            demoIdx < DEMO_SEQUENCE.length
+          ) {
+            startDemo(false);
+          }
+        }, 3000);
       }
 
       function startDemo(resetText = false) {
