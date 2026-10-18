@@ -1687,7 +1687,8 @@
         if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
           return;
 
-        stopDemo();
+        const isEnterKey = e.code === "Enter" || e.key === "Enter";
+        if (!isEnterKey) stopDemo();
 
         if (e.code === "Backspace" || e.key === "Backspace") {
           e.preventDefault();
