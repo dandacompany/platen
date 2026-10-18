@@ -1518,11 +1518,14 @@
         paperViewport.classList.remove("paper-near-limit");
       }
 
-      function requestPaperTurn() {
+      function requestPaperTurn(force = false) {
         const lineCount = committedStr.split("\n").length;
-        if (isPaperTurning || lineCount - paperPageStartLine <= PAPER_LINES) return;
+        if (isPaperTurning || (!force && lineCount - paperPageStartLine <= PAPER_LINES)) return;
+        const nextPageStartLine = force
+          ? Math.max(0, lineCount - 1)
+          : paperPageStartLine + PAPER_LINES;
         if (reducedMotionQuery.matches) {
-          paperPageStartLine += PAPER_LINES;
+          paperPageStartLine = nextPageStartLine;
           updateScreen();
           return;
         }
@@ -1530,7 +1533,7 @@
         paperSheet.classList.add("paper-turning");
         playPaperTear();
         paperTurnTimer = setTimeout(() => {
-          paperPageStartLine += PAPER_LINES;
+          paperPageStartLine = nextPageStartLine;
           isPaperTurning = false;
           paperTurnTimer = null;
           paperSheet.classList.remove("paper-turning");
@@ -1657,6 +1660,7 @@
           triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
+          requestPaperTurn(true);
           return;
         }
 
