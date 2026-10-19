@@ -556,6 +556,31 @@
         outline-offset: 3px;
       }
 
+      .correction-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        padding: 6px 28px;
+        color: #c9c3b6;
+        font-size: 12px;
+      }
+      .correction-controls p { flex: 1 1 240px; line-height: 1.5; }
+      .correction-controls button {
+        border: 1px solid #544936;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: #272521;
+        color: #ecc482;
+        font: inherit;
+        cursor: pointer;
+      }
+      .correction-controls button:disabled { opacity: 0.4; cursor: default; }
+      .correction-controls button:focus-visible,
+      .correction-controls a:focus-visible { outline: 2px solid #ecc482; outline-offset: 3px; }
+      .correction-controls small { flex-basis: 100%; font-size: 10px; line-height: 1.5; color: #9e998e; }
+      .correction-controls a { color: #bca77d; }
+
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
@@ -810,6 +835,17 @@
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
         </div>
 
+        <div class="correction-controls" id="correctionControls">
+          <p id="correctionStatus" role="status" aria-live="polite">자동 교정 대기 · 첫 Enter 시 무료 AI 모델을 준비합니다.</p>
+          <button type="button" id="correctionUndoBtn" disabled>교정 되돌리기</button>
+          <button type="button" id="correctionRetryBtn" hidden>다시 시도</button>
+          <small>첫 사용 시 모델 약 368MB 다운로드 · 문장은 브라우저 안에서 처리 · 오교정 가능 · 한 줄 160자까지<br />
+            제공: <a href="https://github.com/huggingface/transformers.js" target="_blank" rel="noopener noreferrer">Transformers.js</a> ·
+            <a href="https://huggingface.co/j5ng/et5-typos-corrector" target="_blank" rel="noopener noreferrer">ET5 교정 모델</a> ·
+            <a href="https://huggingface.co/hueyjeong/et5-typos-corrector-onnx-q8" target="_blank" rel="noopener noreferrer">ONNX 변환</a> · Apache-2.0
+          </small>
+        </div>
+
         <!-- 3. 하단 안내 줄 -->
         <div class="footer-hint">
           <span
@@ -817,13 +853,44 @@
             한글이 찍힙니다.</span
           >
           <span
-            ><kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 지우기 &nbsp;
+            ><kbd>Enter</kbd> AI 교정·줄바꿈 &nbsp; <kbd>Backspace</kbd> 지우기 &nbsp;
             <kbd>Shift</kbd> 쌍자음</span
           >
         </div>
       </div>
     </div>
 
+    <!-- 이 스크립트는 직접 실행하지 않고 별도 Worker 안에서 실행한다. -->
+    <script id="correctionWorkerSource" type="text/plain">
+      let corrector;
+      self.addEventListener("message", async ({ data }) => {
+        try {
+          if (data.type === "load") {
+            const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js");
+            env.allowLocalModels = false;
+            env.allowRemoteModels = true;
+            env.backends.onnx.wasm.numThreads = 1;
+            env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/";
+            corrector = await pipeline("text2text-generation", "hueyjeong/et5-typos-corrector-onnx-q8", {
+              revision: "7f6bbb322e691bbba89948fd92c446a28332dff1",
+              device: "wasm",
+              dtype: "q8",
+              progress_callback: (event) => {
+                if (event.status === "progress") self.postMessage({ type: "progress", progress: event.progress });
+              },
+            });
+            self.postMessage({ type: "ready" });
+          } else if (data.type === "correct") {
+            const result = await corrector("맞춤법을 고쳐주세요: " + data.text, {
+              max_new_tokens: 256, num_beams: 5, do_sample: false,
+            });
+            self.postMessage({ type: "result", id: data.id, text: result[0].generated_text });
+          }
+        } catch (error) {
+          self.postMessage({ type: "error", id: data.id, message: String(error) });
+        }
+      });
+    </script>
     <script>
       /* =========================================================================
    1. 사운드 합성 엔진 (Web Audio API)
@@ -1439,13 +1506,183 @@
       document.fonts.ready.then(() => updateScreen());
       document.fonts.addEventListener("loadingdone", () => updateScreen());
 
+      // 무료 브라우저 AI 교정. 글은 외부 교정 서버로 보내지 않는다.
+      // 모델·실행 라이브러리만 내려받고 계산은 Worker에서 해 타이핑을 막지 않는다.
+      const correctionControls = document.getElementById("correctionControls");
+      const correctionStatus = document.getElementById("correctionStatus");
+      const correctionUndoBtn = document.getElementById("correctionUndoBtn");
+      const correctionRetryBtn = document.getElementById("correctionRetryBtn");
+      let correctionWorker = null;
+      let correctionPhase = "idle";
+      let correctionTimer = null;
+      let correctionGeneration = 0;
+      let correctionNextId = 0;
+      let correctionQueue = [];
+      let correctionCurrent = null;
+      const correctionHistory = [];
+
+      function setCorrectionStatus(message) {
+        correctionStatus.textContent = message;
+        correctionUndoBtn.disabled = correctionHistory.length === 0;
+      }
+
+      // 삭제·리셋 전에 요청 세대를 바꿔 오래된 결과가 글을 복원하지 못하게 한다.
+      function invalidateCorrections(clearHistory = false) {
+        correctionGeneration += 1;
+        correctionQueue = [];
+        if (clearHistory) correctionHistory.length = 0;
+        setCorrectionStatus(correctionPhase === "loading"
+          ? "AI 모델 준비 중… 입력은 계속할 수 있습니다."
+          : "자동 교정 대기 · Enter로 교정");
+      }
+
+      function failCorrection(message) {
+        clearTimeout(correctionTimer);
+        const lines = committedStr.split("\n");
+        // 실패한 한 줄뿐 아니라 아직 유효한 대기 줄도 재시도할 수 있게 보존한다.
+        correctionQueue = [correctionCurrent, ...correctionQueue].filter((job) =>
+          job && job.generation === correctionGeneration && lines[job.lineIndex] === job.original,
+        );
+        correctionCurrent = null;
+        correctionWorker?.terminate();
+        correctionWorker = null;
+        correctionPhase = "error";
+        correctionRetryBtn.hidden = false;
+        setCorrectionStatus(message);
+      }
+
+      function ensureCorrectionWorker() {
+        if (correctionWorker) return correctionWorker;
+        correctionPhase = "loading";
+        correctionRetryBtn.hidden = true;
+        setCorrectionStatus("AI 모델 준비 중… 처음에는 약 368MB를 내려받습니다.");
+        let sourceUrl;
+        try {
+          if (!window.Worker || !window.WebAssembly) throw new Error("unsupported");
+          sourceUrl = URL.createObjectURL(new Blob(
+            [document.getElementById("correctionWorkerSource").textContent],
+            { type: "text/javascript" },
+          ));
+          const worker = new Worker(sourceUrl);
+          correctionWorker = worker;
+          worker.addEventListener("message", ({ data }) => {
+            if (worker !== correctionWorker) return;
+            if (data.type === "progress" && correctionPhase === "loading") {
+              const progress = Math.max(0, Math.min(100, Math.round(Number(data.progress) || 0)));
+              setCorrectionStatus(`AI 모델 준비 중… ${progress}% · 입력은 계속할 수 있습니다.`);
+            } else if (data.type === "ready") {
+              clearTimeout(correctionTimer);
+              correctionPhase = "ready";
+              setCorrectionStatus("AI 준비 완료 · Enter로 자동 교정");
+              pumpCorrections();
+            } else if (data.type === "result" && data.id === correctionCurrent?.id) {
+              clearTimeout(correctionTimer);
+              const job = correctionCurrent;
+              correctionCurrent = null;
+              const lines = committedStr.split("\n");
+              if (job.generation === correctionGeneration && lines[job.lineIndex] === job.original) {
+                const answer = typeof data.text === "string" ? data.text.trim() : "";
+                if (!answer || /[\r\n]/.test(answer) || answer.length > 1000) {
+                  setCorrectionStatus("교정 결과를 적용할 수 없어 원문을 유지했습니다.");
+                } else {
+                  const leading = job.original.match(/^\s*/)[0];
+                  const trailing = job.original.match(/\s*$/)[0];
+                  const corrected = leading + answer + trailing;
+                  if (corrected !== job.original) {
+                    lines[job.lineIndex] = corrected;
+                    committedStr = lines.join("\n");
+                    correctionHistory.push({ lineIndex: job.lineIndex, original: job.original, corrected });
+                    updateScreen();
+                    setCorrectionStatus("자동 교정 완료 · 잘못 고쳤다면 되돌리세요.");
+                  } else {
+                    setCorrectionStatus("교정 완료 · 바뀐 내용 없음");
+                  }
+                }
+              }
+              pumpCorrections();
+            } else if (data.type === "error") {
+              failCorrection("AI 교정 실패 · 원문 유지 · 다시 시도할 수 있습니다.");
+            }
+          });
+          worker.addEventListener("error", () => {
+            if (worker === correctionWorker) failCorrection("AI 연결 오류 · 원문 유지 · 인터넷 연결을 확인하세요.");
+          });
+          correctionTimer = setTimeout(() => {
+            if (worker === correctionWorker) failCorrection("AI 준비 시간 초과 · 원문 유지 · 다시 시도하세요.");
+          }, 240000);
+          worker.postMessage({ type: "load" });
+          return worker;
+        } catch (error) {
+          failCorrection("이 브라우저에서 AI를 시작하지 못했습니다. Chrome 또는 Edge에서 다시 시도하세요.");
+          return null;
+        } finally {
+          if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+        }
+      }
+
+      function pumpCorrections() {
+        if (correctionPhase !== "ready" || correctionCurrent) return;
+        while (correctionQueue.length) {
+          const job = correctionQueue.shift();
+          if (job.generation !== correctionGeneration || committedStr.split("\n")[job.lineIndex] !== job.original) continue;
+          correctionCurrent = job;
+          setCorrectionStatus("문장 교정 중… 입력은 계속할 수 있습니다.");
+          correctionTimer = setTimeout(() => failCorrection("교정 시간 초과 · 원문을 유지했습니다."), 30000);
+          correctionWorker.postMessage({ type: "correct", id: job.id, text: job.original.trim() });
+          return;
+        }
+      }
+
+      function queueLineCorrection(lineIndex, original) {
+        if (!original.trim()) return;
+        if ([...original.trim()].length > 160) {
+          setCorrectionStatus("160자를 넘는 줄은 원문 유지 · 짧은 줄로 나눠 입력하세요.");
+          return;
+        }
+        correctionQueue.push({ id: ++correctionNextId, generation: correctionGeneration, lineIndex, original });
+        if (correctionPhase === "error") {
+          setCorrectionStatus("AI 연결 오류 · 원문 유지 · 다시 시도를 눌러 주세요.");
+          return;
+        }
+        ensureCorrectionWorker();
+        pumpCorrections();
+      }
+
+      function undoLastCorrection() {
+        stopDemo();
+        const lines = committedStr.split("\n");
+        const entry = correctionHistory.pop();
+        if (!entry) return;
+        invalidateCorrections();
+        if (lines[entry.lineIndex] === entry.corrected) {
+          lines[entry.lineIndex] = entry.original;
+          committedStr = lines.join("\n");
+          updateScreen();
+          setCorrectionStatus("교정을 되돌렸습니다. 이후에 입력한 내용은 그대로입니다.");
+        } else {
+          setCorrectionStatus("이미 편집한 줄이라 되돌리지 않았습니다.");
+        }
+        desk.focus();
+      }
+      correctionUndoBtn.addEventListener("click", undoLastCorrection);
+      correctionRetryBtn.addEventListener("click", () => {
+        correctionPhase = "idle";
+        ensureCorrectionWorker();
+        desk.focus();
+      });
+      correctionControls.addEventListener("keydown", (event) => event.stopPropagation());
+
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
-      function handleKey(k) {
+      function handleKey(k, fromDemo = false) {
         if (k === "BACK") {
           sound.playKeyClick(false);
           triggerStrike();
           if (!automata.backspace()) {
+            invalidateCorrections();
             committedStr = committedStr.slice(0, -1);
+            const editingLine = committedStr.split("\n").length - 1;
+            while (correctionHistory.length && correctionHistory.at(-1).lineIndex >= editingLine) correctionHistory.pop();
+            correctionUndoBtn.disabled = correctionHistory.length === 0;
           }
           updateScreen();
           return;
@@ -1462,8 +1699,12 @@
         if (k === "Enter") {
           sound.playReturnBell();
           triggerStrike();
-          committedStr += automata.flush() + "\n";
+          committedStr += automata.flush();
+          const lines = committedStr.split("\n");
+          const lineIndex = lines.length - 1;
+          committedStr += "\n";
           updateScreen();
+          if (!fromDemo) queueLineCorrection(lineIndex, lines[lineIndex]);
           return;
         }
 
@@ -1676,7 +1917,7 @@
         }
 
         const key = DEMO_SEQUENCE[demoIdx++];
-        handleKey(key);
+        handleKey(key, true);
 
         let delay = 145 + Math.random() * 70;
         if (key === "Enter") delay = 420;
@@ -1694,6 +1935,7 @@
 
       function startDemo(resetText = false) {
         if (resetText) {
+          invalidateCorrections(true);
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
