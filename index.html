@@ -32,7 +32,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        min-height: var(--app-h, 100vh);
         font-family:
           -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
           "Malgun Gothic", sans-serif;
@@ -44,7 +44,8 @@
         position: relative;
         width: 100%;
         max-width: 860px;
-        height: 100vh;
+        /* --app-h 는 화면 키보드를 뺀 실제 보이는 높이다 (visualViewport, 스크립트 8 참고) */
+        height: var(--app-h, 100vh);
         background-color: #1c1b18;
         display: flex;
         flex-direction: column;
@@ -55,7 +56,7 @@
 
       @media (min-width: 900px) {
         .desk {
-          height: 94vh;
+          height: calc(var(--app-h, 100vh) * 0.94);
           border-radius: 18px;
           border: 1px solid #2a2824;
         }
@@ -664,6 +665,48 @@
         color: #c9c3b6;
         background: #23221f;
       }
+
+      /* ================= 4. 휴대폰·태블릿 입력 ================= */
+      /* 화면 키보드를 부르기 위한 보이지 않는 입력칸. 인쇄선 근처에 두어 iOS 가 엉뚱한 곳으로 스크롤하지 않게 한다.
+         16px 미만이면 iOS 가 확대하고, user-select: none 이면 iOS 에서 입력이 안 되므로 둘 다 풀어 둔다. */
+      .mobile-input {
+        position: absolute;
+        left: 50%;
+        bottom: 56px;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        resize: none;
+        overflow: hidden;
+        font-size: 16px;
+        color: transparent;
+        caret-color: transparent;
+        background: transparent;
+        pointer-events: none;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+
+      .hint-touch {
+        display: none;
+      }
+      @media (pointer: coarse) {
+        .hint-desktop {
+          display: none;
+        }
+        .hint-touch {
+          display: inline;
+        }
+      }
+
+      /* 화면 키보드가 올라와 있는 동안은 램프 조절을 접어 종이를 넓게 쓴다 */
+      .desk.touch-typing .lamp-controls,
+      .desk.touch-typing .font-controls,
+      .desk.touch-typing .footer-hint {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -705,6 +748,19 @@
             <div class="type-guide-base"></div>
           </div>
         </div>
+
+        <!-- 휴대폰·태블릿: 종이를 누르면 이 칸에 포커스가 가서 화면 키보드가 올라온다 -->
+        <textarea
+          class="mobile-input"
+          id="mobileInput"
+          aria-label="메모 입력"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          enterkeyhint="enter"
+          tabindex="-1"
+        ></textarea>
       </div>
 
       <!-- 2. 나이트 램프 레일 & 슬라이더 컨트롤 -->
@@ -812,11 +868,15 @@
 
         <!-- 3. 하단 안내 줄 -->
         <div class="footer-hint">
-          <span
+          <span class="hint-touch"
+            >종이를 톡 누르면 키보드가 올라옵니다. 휴대폰 자판 그대로 치면
+            됩니다.</span
+          >
+          <span class="hint-desktop"
             >키보드로 바로 타이핑하세요. 한/영 상태와 상관없이 자판 위치대로
             한글이 찍힙니다.</span
           >
-          <span
+          <span class="hint-desktop"
             ><kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 지우기 &nbsp;
             <kbd>Shift</kbd> 쌍자음</span
           >
@@ -1305,6 +1365,8 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      // 휴대폰 키보드(IME)가 아직 조합 중인 글자. 데스크탑 입력에서는 늘 비어 있다
+      let imeText = "";
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
@@ -1335,7 +1397,7 @@
 
         // 키마다 바로 측정해야 한 프레임 안의 연타도 각자 자리에 찍힌다.
         // 레이어는 종이와 같은 transform 을 따르므로 이동 중이어도 두 사각형의 차이는 종이 기준 좌표다.
-        const targetNode = automata.getComposingChar()
+        const targetNode = composingEl.textContent
           ? composingEl
           : cursorAnchor;
         const targetRect = targetNode.getBoundingClientRect();
@@ -1390,11 +1452,11 @@
 
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
-        const comp = automata.getComposingChar();
+        const comp = automata.getComposingChar() || imeText;
         committedEl.textContent = committedStr;
         composingEl.textContent = comp;
 
-        const totalLen = committedStr.length + (comp ? 1 : 0);
+        const totalLen = committedStr.length + comp.length;
         charCountEl.textContent = totalLen.toLocaleString();
         lineCountEl.textContent = (committedStr + comp).split("\n").length;
 
@@ -1614,6 +1676,8 @@
       };
 
       window.addEventListener("keydown", (e) => {
+        // 휴대폰 키보드 입력은 입력칸의 input 이벤트로 받는다 (8. 휴대폰·태블릿 입력)
+        if (e.target === mobileInput) return;
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
         if (e.target === fontSelect || e.target === impactToggle) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1729,13 +1793,117 @@
       paperViewport.addEventListener("click", () => {
         sound.init();
         stopDemo();
-        desk.focus();
+        // 손가락이 주 입력인 기기는 화면 키보드를 불러야 하므로 입력칸에 포커스를 준다
+        if (coarsePointerQuery.matches) mobileInput.focus({ preventScroll: true });
+        else desk.focus();
       });
 
       document.body.addEventListener("mousedown", () => sound.init(), {
         once: true,
       });
       window.addEventListener("resize", () => updateScreen());
+
+      /* =========================================================================
+   8. 휴대폰·태블릿 입력 - 기기의 한글 키보드(IME)가 조합한 글자를 그대로 종이에 찍는다
+   ========================================================================= */
+      // 데스크탑은 위의 자판 위치(e.code) 방식을 그대로 쓰고, 여기는 손가락이 주 입력인 기기에서만 쓰인다.
+      const mobileInput = document.getElementById("mobileInput");
+      const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
+
+      // 입력칸이 비면 Backspace 가 input 이벤트를 내지 않으므로, 보이지 않는 받침 글자를 늘 하나 깔아 둔다.
+      // 이 글자가 지워지면 "종이의 글자 하나를 지웠다" 로 본다. 일반 공백은 키보드가 ". " 로 바꿀 수 있어 폭 없는 공백을 쓴다.
+      const IME_SENTINEL = "​";
+      let isImeComposing = false;
+
+      function resetMobileInput() {
+        mobileInput.value = IME_SENTINEL;
+        mobileInput.setSelectionRange(1, 1);
+      }
+
+      // 키 하나를 친 것처럼 소리·T자 타격·잉크 효과를 낸다
+      function playTouchKeyFeedback(kind) {
+        if (kind === "enter") sound.playReturnBell();
+        else sound.playKeyClick(kind === "space");
+        triggerStrike();
+        updateScreen();
+        if (kind === "char") triggerTypeImpact();
+      }
+
+      function syncMobileInput() {
+        stopDemo();
+        const value = mobileInput.value;
+
+        if (!value.startsWith(IME_SENTINEL)) {
+          // 받침 글자가 지워졌다 = 종이의 마지막 글자를 지운다 (이모지처럼 두 칸짜리 글자도 한 번에)
+          imeText = "";
+          committedStr = committedStr.replace(/[\s\S]$/u, "");
+          resetMobileInput();
+          playTouchKeyFeedback("back");
+          return;
+        }
+
+        const text = value.slice(IME_SENTINEL.length);
+        if (isImeComposing) {
+          // 조합 중인 글자는 종이에 밑줄 글자로만 보여 주고 아직 확정하지 않는다
+          if (text === imeText) return;
+          imeText = text;
+          playTouchKeyFeedback("char");
+          return;
+        }
+
+        imeText = "";
+        resetMobileInput();
+        if (!text) {
+          updateScreen();
+          return;
+        }
+        committedStr += text;
+        playTouchKeyFeedback(
+          text.endsWith("\n") ? "enter" : text.endsWith(" ") ? "space" : "char",
+        );
+      }
+
+      mobileInput.addEventListener("compositionstart", () => {
+        isImeComposing = true;
+      });
+      // 브라우저마다 compositionend 와 마지막 input 의 순서가 달라서 양쪽에서 모두 맞춘다
+      mobileInput.addEventListener("compositionend", () => {
+        isImeComposing = false;
+        syncMobileInput();
+      });
+      mobileInput.addEventListener("input", syncMobileInput);
+
+      mobileInput.addEventListener("focus", () => {
+        // 자동 타이핑이 글자 중간(예: ㅇ)에서 멈췄다면 그 자모는 확정해 두고 기기 키보드로 넘긴다
+        committedStr += automata.flush();
+        resetMobileInput();
+        desk.classList.add("touch-typing");
+        updateScreen();
+      });
+      mobileInput.addEventListener("blur", () => {
+        // 조합 중이던 글자는 버리지 않고 종이에 남긴다
+        isImeComposing = false;
+        syncMobileInput();
+        desk.classList.remove("touch-typing");
+        updateScreen();
+      });
+
+      // 화면 키보드가 올라오면 보이는 높이만큼 책상을 줄여 인쇄선이 키보드 위에 오게 한다
+      function fitDeskToVisualViewport() {
+        const viewport = window.visualViewport;
+        if (!viewport) return;
+        // 두 손가락 확대는 scale 로 되돌려, 키보드가 가린 높이만 뺀다
+        document.documentElement.style.setProperty(
+          "--app-h",
+          `${Math.round(viewport.height * viewport.scale)}px`,
+        );
+        if (window.scrollY || viewport.offsetTop) window.scrollTo(0, 0);
+        updateScreen();
+      }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", fitDeskToVisualViewport);
+        fitDeskToVisualViewport();
+      }
 
       // 초기 실행
       updateScreen();
