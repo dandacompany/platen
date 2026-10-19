@@ -1866,10 +1866,12 @@
       mobileInput.addEventListener("compositionstart", () => {
         isImeComposing = true;
       });
-      // 브라우저마다 compositionend 와 마지막 input 의 순서가 달라서 양쪽에서 모두 맞춘다
+      // 브라우저마다 compositionend 와 마지막 input 의 순서가 다르다 (Chrome 은 input 이 먼저, Safari 는 나중).
+      // 한 박자 미뤄 마지막 input 이 먼저 확정하게 하고, input 이 더 오지 않는 브라우저는 여기서 확정한다.
+      // 이미 확정됐으면 입력칸에 받침 글자만 남아 있어 다시 붙지 않는다.
       mobileInput.addEventListener("compositionend", () => {
         isImeComposing = false;
-        syncMobileInput();
+        setTimeout(syncMobileInput, 0);
       });
       mobileInput.addEventListener("input", syncMobileInput);
 
