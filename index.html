@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Courier+Prime:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -190,6 +190,18 @@
 
       .ink-text {
         text-shadow: 0 0 0.6px rgba(25, 20, 15, 0.55);
+      }
+
+      .english-text {
+        font-family: "Caveat", cursive;
+        font-size: 1.2em;
+        letter-spacing: 0;
+      }
+
+      .input-mode {
+        color: #ecc482;
+        font-size: 11px;
+        white-space: nowrap;
       }
 
       .composing-char {
@@ -683,6 +695,7 @@
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
+            <span class="input-mode" id="inputMode" aria-live="polite">한글 입력</span>
             <div class="char-counter">
               <span id="charCount">151</span> / 3,000 · <span id="lineCount">14</span>줄
             </div>
@@ -1309,6 +1322,7 @@
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
       const composingEl = document.getElementById("composingText");
+      const inputModeEl = document.getElementById("inputMode");
       const cursorAnchor = document.getElementById("cursorAnchor");
       const paperSheet = document.getElementById("paperSheet");
       const paperViewport = document.getElementById("paperViewport");
@@ -1391,8 +1405,25 @@
       // 화면 텍스트, T자 가이드와 램프 좌표, 종이 스크롤 갱신
       function updateScreen() {
         const comp = automata.getComposingChar();
-        committedEl.textContent = committedStr;
+        committedEl.replaceChildren();
+        const latinPattern = /[A-Za-z]+/g;
+        let lastIndex = 0;
+        for (const match of committedStr.matchAll(latinPattern)) {
+          committedEl.append(
+            document.createTextNode(committedStr.slice(lastIndex, match.index)),
+          );
+          const englishText = document.createElement("span");
+          englishText.className = "english-text";
+          englishText.textContent = match[0];
+          committedEl.append(englishText);
+          lastIndex = match.index + match[0].length;
+        }
+        committedEl.append(document.createTextNode(committedStr.slice(lastIndex)));
         composingEl.textContent = comp;
+        composingEl.classList.toggle(
+          "english-text",
+          isEnglishMode && /^[A-Za-z]$/.test(comp),
+        );
 
         const totalLen = committedStr.length + (comp ? 1 : 0);
         charCountEl.textContent = totalLen.toLocaleString();
@@ -1613,13 +1644,25 @@
         KeyM: ["ㅡ", "ㅡ"],
       };
 
+      let isEnglishMode = false;
+
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
         if (e.target === fontSelect || e.target === impactToggle) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
-        if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
+        if (e.code === "Lang1" || e.key === "HangulMode" || e.key === "Lang1") {
+          e.preventDefault();
+          stopDemo();
+          committedStr += automata.flush();
+          isEnglishMode = !isEnglishMode;
+          inputModeEl.textContent = isEnglishMode ? "English" : "한글 입력";
+          updateScreen();
+          return;
+        }
+
+        if (e.key === "Shift" || e.key === "CapsLock")
           return;
 
         stopDemo();
@@ -1645,6 +1688,14 @@
         // 알파벳 자판 위치(KeyA ~ KeyZ)는 한/영 상태와 무관하게 두벌식 한글 자모로
         if (CODE_TO_JAMO[e.code]) {
           e.preventDefault();
+          if (isEnglishMode) {
+            handleKey(
+              e.key.length === 1 && e.key !== "Process"
+                ? e.key
+                : e.code.slice(3).toLowerCase(),
+            );
+            return;
+          }
           const jamo = e.shiftKey
             ? CODE_TO_JAMO[e.code][1]
             : CODE_TO_JAMO[e.code][0];
