@@ -71,6 +71,36 @@
         cursor: text;
       }
 
+      .desk.magnifier-armed .paper-viewport {
+        cursor: zoom-in;
+      }
+
+      .magnifier-btn {
+        color: rgba(175, 166, 148, 0.7);
+      }
+      .magnifier-btn[aria-pressed="true"] {
+        color: #f3c878;
+        text-shadow: 0 0 10px rgba(243, 200, 120, 0.45);
+      }
+
+      .magnifier-lens {
+        position: absolute;
+        z-index: 8;
+        width: 180px;
+        height: 180px;
+        overflow: hidden;
+        border: 3px solid #d8bd82;
+        border-radius: 50%;
+        background: #d2c9b6;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55), inset 0 0 0 2px rgba(30, 26, 21, 0.35);
+        pointer-events: none;
+      }
+
+      .magnifier-lens .paper-sheet {
+        transition: none;
+        pointer-events: none;
+      }
+
       /* 종이 질감 노이즈 레이어 */
       .paper-texture {
         position: absolute;
@@ -672,6 +702,7 @@
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
         <div class="type-impact-layer" id="typeImpactLayer" aria-hidden="true"></div>
+        <div class="magnifier-lens" id="magnifierLens" hidden aria-hidden="true"></div>
 
         <!-- 상단 HUD -->
         <div class="top-hud">
@@ -679,6 +710,8 @@
             <button class="hud-btn" id="clearBtn" title="처음 상태로 리셋">
               ←
             </button>
+            <button type="button" class="hud-btn magnifier-btn" id="magnifierBtn"
+              title="돋보기 켜기" aria-label="돋보기 켜기" aria-pressed="false">⌕</button>
             <span class="wordmark">Platen</span>
           </div>
           <div class="hud-right">
@@ -1312,6 +1345,50 @@
       const cursorAnchor = document.getElementById("cursorAnchor");
       const paperSheet = document.getElementById("paperSheet");
       const paperViewport = document.getElementById("paperViewport");
+      const magnifierBtn = document.getElementById("magnifierBtn");
+      const magnifierLens = document.getElementById("magnifierLens");
+      let magnifierArmed = false;
+      let magnifierPoint = null;
+
+      function updateMagnifierLens() {
+        if (!magnifierPoint) return;
+        const viewportRect = paperViewport.getBoundingClientRect();
+        const lensSize = magnifierLens.offsetWidth || 180;
+        const left = Math.max(0, Math.min(viewportRect.width - lensSize, magnifierPoint.x - lensSize / 2));
+        const top = Math.max(0, Math.min(viewportRect.height - lensSize, magnifierPoint.y - lensSize / 2));
+        magnifierLens.style.left = `${left}px`;
+        magnifierLens.style.top = `${top}px`;
+
+        const magnifiedSheet = paperSheet.cloneNode(true);
+        magnifiedSheet.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
+        const computed = getComputedStyle(paperSheet);
+        const translateY = Number.parseFloat(paperSheet.style.transform.match(/translateY\(([-\d.]+)px\)/)?.[1] || "0");
+        magnifiedSheet.style.position = "absolute";
+        magnifiedSheet.style.left = `${-left}px`;
+        magnifiedSheet.style.right = "auto";
+        magnifiedSheet.style.top = `${-top}px`;
+        magnifiedSheet.style.width = `${viewportRect.width}px`;
+        magnifiedSheet.style.padding = computed.padding;
+        magnifiedSheet.style.font = computed.font;
+        magnifiedSheet.style.lineHeight = computed.lineHeight;
+        magnifiedSheet.style.letterSpacing = computed.letterSpacing;
+        magnifiedSheet.style.transformOrigin = `${magnifierPoint.x}px ${magnifierPoint.y - translateY}px`;
+        magnifiedSheet.style.transform = `translateY(${translateY}px) scale(1.25)`;
+        magnifierLens.replaceChildren(magnifiedSheet);
+      }
+
+      magnifierBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        magnifierArmed = !magnifierArmed;
+        desk.classList.toggle("magnifier-armed", magnifierArmed);
+        magnifierBtn.setAttribute("aria-pressed", String(magnifierArmed));
+        magnifierBtn.setAttribute("aria-label", magnifierArmed ? "돋보기 끄기" : "돋보기 켜기");
+        magnifierBtn.title = magnifierArmed ? "돋보기 끄기" : "돋보기 켜기";
+        if (!magnifierArmed) {
+          magnifierPoint = null;
+          magnifierLens.hidden = true;
+        }
+      });
       const typeGuide = document.getElementById("typeGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
       const impactToggle = document.getElementById("impactToggle");
@@ -1425,6 +1502,7 @@
           const translateY = targetPrintLineY - anchorOffsetTop;
           paperSheet.style.transform = `translateY(${translateY}px)`;
           typeImpactLayer.style.transform = paperSheet.style.transform;
+          if (magnifierPoint) updateMagnifierLens();
 
           updateLightingOverlay(clampedX, viewportRect.height);
         });
@@ -1726,9 +1804,17 @@
       });
 
       // 종이를 클릭하면 데모를 멈추고 바로 타이핑할 수 있게 포커스를 준다
-      paperViewport.addEventListener("click", () => {
+      paperViewport.addEventListener("click", (event) => {
         sound.init();
         stopDemo();
+        if (magnifierArmed) {
+          const rect = paperViewport.getBoundingClientRect();
+          magnifierPoint = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+          magnifierLens.hidden = false;
+          updateMagnifierLens();
+          desk.focus();
+          return;
+        }
         desk.focus();
       });
 
