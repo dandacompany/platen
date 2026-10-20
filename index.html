@@ -61,9 +61,114 @@
         }
       }
 
+      /* 검색 도구는 종이 밖에, 선택한 사진 전용 프레임은 종이 안에 둔다. */
+      .image-panel {
+        position: fixed;
+        z-index: 8;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 25vw;
+        max-height: 94vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        cursor: default;
+        padding: 14px;
+        border: 1px solid #514533;
+        border-radius: 12px;
+        background: #24221d;
+        color: #dfcfad;
+        font: 12px/1.5 "Gowun Batang", serif;
+        box-shadow: 0 12px 32px #0006;
+      }
+      .image-panel [hidden], .paper-photo [hidden] { display: none !important; }
+      .paper-photo {
+        position: absolute;
+        z-index: 6;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: var(--paper-image-width);
+        height: min(var(--paper-image-width), calc(100% - 112px));
+        pointer-events: none;
+      }
+      .image-panel > * { flex-shrink: 0; }
+      .image-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+      .image-panel h2 { font-size: 15px; font-weight: 400; letter-spacing: 0.06em; }
+      .image-panel button, .image-upload-label {
+        border: 1px solid #66543b;
+        border-radius: 5px;
+        padding: 7px 9px;
+        background: #302c23;
+        color: #edcf96;
+        font: inherit;
+        cursor: pointer;
+      }
+      .image-panel button:hover, .image-upload-label:hover { background: #423827; }
+      .image-panel button:disabled { opacity: 0.4; cursor: default; }
+      .image-panel button:focus-visible, .image-panel a:focus-visible,
+      .image-panel input:focus-visible, .image-upload-label:focus-within { outline: 2px solid #ecc482; outline-offset: 3px; }
+      .image-frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        border: 1px dashed #89704a;
+        border-radius: 4px;
+        background: rgba(239, 229, 207, 0.14);
+      }
+      .image-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      .image-placeholder { padding: 18px; text-align: center; color: #77684e; line-height: 1.9; font: 12px/1.9 "Gowun Batang", serif; }
+      .image-placeholder svg { display: block; width: 54px; height: 54px; margin: 0 auto 10px; opacity: 0.7; }
+      .image-credit { margin-top: 8px; font-size: 10px; overflow-wrap: anywhere; color: #baa989; user-select: text; }
+      .image-credit a { color: #d6b87e; }
+      .image-actions { display: flex; gap: 8px; margin-top: 12px; }
+      .image-actions > * { flex: 1; text-align: center; }
+      .image-upload-label { position: relative; display: flex; align-items: center; justify-content: center; }
+      .image-upload-label input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+      .image-search-form { display: flex; gap: 6px; margin-top: 10px; }
+      .image-search-form input {
+        width: 0; flex: 1; min-width: 0;
+        border: 1px solid #66543b; border-radius: 5px;
+        background: #181a16; color: #f1e5cf; padding: 8px;
+        font: inherit; user-select: text; -webkit-user-select: text;
+      }
+      .image-status { margin-top: 8px; min-height: 2.8em; font-size: 11px; color: #d2bf9a; }
+      .image-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; max-height: 180px; overflow-y: auto; }
+      .image-panel .image-result { padding: 3px; min-width: 0; text-align: left; }
+      .image-result img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 2px; }
+      .image-result span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 9px; padding-top: 3px; }
+      .image-privacy { display: block; margin-top: 8px; font-size: 9px; color: #aa9c83; }
+      @media (min-width: 901px) {
+        body { padding: 0 calc(25vw + 40px) 0 24px; }
+      }
+      @media (max-width: 900px) {
+        body { flex-direction: column; justify-content: flex-start; overflow: auto; gap: 18px; padding-bottom: 20px; }
+        .desk { height: 100svh; min-height: 620px; flex-shrink: 0; }
+        .image-panel { position: static; transform: none; width: calc(100% - 24px); max-width: 420px; margin-inline: auto; }
+      }
+      @media (max-width: 600px) {
+        .desk .paper-viewport { --paper-image-width: 40vw; }
+        .paper-photo { right: 10px; }
+        .image-panel { padding: 12px; border-radius: 6px; font-size: 12px; }
+        .image-panel-header { flex-wrap: wrap; }
+        .image-panel h2 { font-size: 12px; }
+        .image-panel button, .image-upload-label { padding: 5px; }
+        .image-actions { flex-direction: column; }
+        .image-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .image-placeholder { padding: 6px; }
+        .image-placeholder svg { width: 30px; height: 30px; margin-bottom: 4px; }
+        .desk .paper-sheet { padding-left: 24px; font-size: 16px; }
+        .ink-station { right: calc(40vw + 18px); }
+      }
+
       /* ================= 1. 종이 & 타자기 영역 ================= */
       .paper-viewport {
         position: relative;
+        --paper-image-width: 25vw;
         flex: 1;
         width: 100%;
         background-color: #d2c9b6;
@@ -176,7 +281,7 @@
         left: 0;
         right: 0;
         top: 0;
-        padding: 48px 76px 160px 84px;
+        padding: 48px calc(var(--paper-image-width) + 56px) 160px 84px;
         font-family: "Gowun Batang", "Nanum Myeongjo", serif;
         font-size: 18px;
         line-height: 30px;
@@ -559,7 +664,7 @@
       /* 잉크병: 종이의 활자 크기만 조절한다. */
       .ink-station {
         position: absolute;
-        right: 22px;
+        right: calc(25vw + 32px);
         bottom: calc(100% + 18px);
         z-index: 12;
       }
@@ -636,7 +741,7 @@
       .ink-bottle-btn:focus-visible,
       .ink-size-panel input:focus-visible { outline: 2px solid #e1bd77; outline-offset: 4px; }
       @media (max-width: 480px) {
-        .ink-station { right: 12px; }
+        .ink-station { right: calc(40vw + 18px); }
         .ink-size-panel { width: 180px; right: 68px; }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -695,6 +800,16 @@
           ><span class="composing-char" id="composingText"></span
           ><span id="cursorAnchor">&#8203;</span>
         </div>
+
+        <figure class="paper-photo" id="paperPhoto" aria-label="선택한 사진">
+          <div class="image-frame">
+            <img id="imageSelected" alt="" hidden referrerpolicy="no-referrer" />
+            <div class="image-placeholder" id="imagePlaceholder">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="8" width="54" height="48" rx="3"/><circle cx="44" cy="23" r="5"/><path d="M9 48l15-18 12 13 7-8 12 13"/></svg>
+              선택한 사진이 이곳에 들어갑니다.<br />종이 밖의 검색 결과에서 사진을 골라 주세요.
+            </div>
+          </div>
+        </figure>
 
         <!-- 나이트 램프 빛 & 그림자 레이어 -->
         <div class="lighting-layer" id="lightingLayer"></div>
@@ -823,6 +938,25 @@
         </div>
       </div>
     </div>
+
+    <aside class="image-panel" id="imagePanel" aria-labelledby="imagePanelTitle">
+      <div class="image-panel-header">
+        <h2 id="imagePanelTitle">사진 검색·선택</h2>
+        <button type="button" id="imageRemoveBtn" disabled>사진 지우기</button>
+      </div>
+      <div class="image-actions">
+        <button type="button" id="imageRecommendBtn">글로 추천</button>
+        <label class="image-upload-label">내 사진 넣기<input id="imageFileInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="내 사진 넣기" /></label>
+      </div>
+      <form class="image-search-form" id="imageSearchForm">
+        <input id="imageSearchInput" type="search" maxlength="80" aria-label="이미지 검색어" placeholder="예: 바다, 숲, 고양이" autocomplete="off" />
+        <button type="submit" id="imageSearchBtn">검색</button>
+      </form>
+      <p class="image-status" id="imageStatus" role="status" aria-live="polite">검색 결과의 사진을 누르면 종이 안에 들어갑니다.</p>
+      <div class="image-results" id="imageResults" aria-label="사진 검색 결과"></div>
+      <div class="image-credit" id="imageCredit" hidden></div>
+      <small class="image-privacy">무료 Wikimedia 검색 · 추천은 최근 줄의 검색어 기반입니다. 추천·검색을 누를 때 검색어만 외부로 보내며, 내 사진은 업로드하지 않습니다. 사진마다 출처·이용 조건을 확인하세요.</small>
+    </aside>
 
     <script>
       /* =========================================================================
@@ -1581,6 +1715,269 @@
         }
       });
 
+      // 사진 검색은 버튼을 누를 때만 실행한다. 글 전체가 아닌 검색어만 보낸다.
+      const imagePanel = document.getElementById("imagePanel");
+      const imageSearchInput = document.getElementById("imageSearchInput");
+      const imageSearchForm = document.getElementById("imageSearchForm");
+      const imageStatus = document.getElementById("imageStatus");
+      const imageResults = document.getElementById("imageResults");
+      const imageSelected = document.getElementById("imageSelected");
+      const imageCredit = document.getElementById("imageCredit");
+      const imagePlaceholder = document.getElementById("imagePlaceholder");
+      const imageRemoveBtn = document.getElementById("imageRemoveBtn");
+      const imageFileInput = document.getElementById("imageFileInput");
+      let imageSearchVersion = 0;
+      let imageSearchAbort = null;
+      let imageSelectionVersion = 0;
+      let imageLocalURL = null;
+      let imagePendingLocalURL = null;
+      let imageLoadTimer = null;
+      const imageObjectURLs = new Set();
+
+      function extractImageKeyword(text) {
+        const line = String(text).split("\n").map((value) => value.trim()).filter(Boolean).at(-1) || "";
+        const ignored = new Set(["오늘", "내일", "어제", "나는", "저는", "내가", "제가", "정말", "너무", "조금", "아주", "그리고", "하지만", "그래서", "그런데", "이제", "다시", "우리", "이것", "그것", "안녕하세요"]);
+        const singleNouns = new Set(["숲", "꽃", "달", "별", "물", "비", "눈", "산", "책", "차", "집", "밤", "봄", "강", "새", "길", "불", "빛", "해"]);
+        for (const word of line.match(/[가-힣A-Za-z]+/gu) || []) {
+          if (ignored.has(word)) continue;
+          // 단일 '이'는 고양이 같은 명사에도 있으므로 제거하지 않는다.
+          const stem = word.replace(/(?:에서는|으로는|에게서|으로|에서|에게|까지|부터|처럼|이랑|하고|을|를|은|는|가|의|에|도|와|과)$/u, "");
+          const keyword = stem.length >= 2 || singleNouns.has(stem) ? stem : word;
+          if (ignored.has(keyword) || (keyword.length < 2 && !singleNouns.has(keyword))) continue;
+          if (/(?:했다|한다|하다|었다|았다|있다|없다|이며|보며|인데요|입니다)$/u.test(keyword)) continue;
+          return keyword.slice(0, 40);
+        }
+        return "";
+      }
+
+      function imageMetadataText(value) {
+        const doc = new DOMParser().parseFromString(String(value || ""), "text/html");
+        doc.querySelectorAll("script,style").forEach((node) => node.remove());
+        return (doc.body.textContent || "").replace(/\s+/gu, " ").trim();
+      }
+
+      function safeImageLink(value, hosts = []) {
+        try {
+          const url = new URL(value);
+          if (url.protocol !== "https:" || url.username || url.password) return "";
+          if (hosts.length && !hosts.includes(url.hostname)) return "";
+          return url.href;
+        } catch (error) { return ""; }
+      }
+
+      async function fetchImageJSON(endpoint, params, signal) {
+        const url = new URL(endpoint);
+        url.search = new URLSearchParams({ ...params, format: "json", formatversion: "2", origin: "*" });
+        const response = await fetch(url, { signal, credentials: "omit", referrerPolicy: "no-referrer" });
+        if (!response.ok) throw new Error("image-service-unavailable");
+        const data = await response.json();
+        if (data.error) throw new Error("image-service-error");
+        return data;
+      }
+
+      async function searchPanelImages(rawQuery) {
+        const query = String(rawQuery).trim().slice(0, 80);
+        const version = ++imageSearchVersion;
+        imageSearchAbort?.abort();
+        if (!query) {
+          imageSearchForm.setAttribute("aria-busy", "false");
+          imageStatus.textContent = "검색어를 입력해 주세요.";
+          return;
+        }
+        const controller = new AbortController();
+        imageSearchAbort = controller;
+        const timeout = setTimeout(() => controller.abort(), 20000);
+        imageResults.replaceChildren();
+        imageSearchForm.setAttribute("aria-busy", "true");
+        imageStatus.textContent = `‘${query}’ 사진 검색 중…`;
+        try {
+          let lookup = query;
+          // Commons는 영어 자료가 많아 한국어 위키백과의 대응 제목을 활용한다.
+          if (/[가-힣]/u.test(query)) {
+            try {
+              const wiki = await fetchImageJSON("https://ko.wikipedia.org/w/api.php", {
+                action: "query", generator: "search", gsrsearch: query, gsrlimit: "1",
+                prop: "langlinks", lllang: "en",
+              }, controller.signal);
+              lookup = wiki.query?.pages?.[0]?.langlinks?.[0]?.title || query;
+            } catch (error) {
+              if (controller.signal.aborted) throw error;
+            }
+          }
+          const data = await fetchImageJSON("https://commons.wikimedia.org/w/api.php", {
+            action: "query", generator: "search", gsrsearch: lookup + " filetype:bitmap",
+            gsrnamespace: "6", gsrlimit: "9", prop: "imageinfo", iiprop: "url|extmetadata|mime",
+            iiextmetadatafilter: "Artist|LicenseShortName|LicenseUrl|AttributionRequired",
+            iiurlwidth: "640",
+          }, controller.signal);
+          if (version !== imageSearchVersion) return;
+          const candidates = (data.query?.pages || []).sort((a, b) => (a.index || 0) - (b.index || 0)).flatMap((page) => {
+            const info = page.imageinfo?.[0];
+            if (!info || !/^image\/(?:jpeg|png|webp|gif)$/u.test(info.mime || "")) return [];
+            const url = safeImageLink(info.thumburl, ["upload.wikimedia.org", "thumb.wikimedia.org"]);
+            const source = safeImageLink(info.descriptionurl, ["commons.wikimedia.org"]);
+            const metadata = info.extmetadata || {};
+            const artist = imageMetadataText(metadata.Artist?.value);
+            const license = imageMetadataText(metadata.LicenseShortName?.value);
+            if (!url || !source || !license || (metadata.AttributionRequired?.value === "true" && !artist)) return [];
+            return [{ url, source, title: String(page.title || "사진").replace(/^File:/u, ""), artist: artist || "작자 정보는 원본에서 확인", license, licenseURL: safeImageLink(metadata.LicenseUrl?.value) }];
+          }).slice(0, 6);
+          for (const candidate of candidates) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "image-result";
+            button.title = candidate.title;
+            button.setAttribute("aria-label", candidate.title + " 사진 넣기");
+            const thumbnail = document.createElement("img");
+            thumbnail.src = candidate.url;
+            thumbnail.alt = candidate.title;
+            thumbnail.referrerPolicy = "no-referrer";
+            thumbnail.loading = "lazy";
+            const caption = document.createElement("span");
+            caption.textContent = candidate.title;
+            button.append(thumbnail, caption);
+            button.addEventListener("click", () => selectPanelImage(candidate));
+            imageResults.appendChild(button);
+          }
+          imageStatus.textContent = candidates.length
+            ? `‘${query}’${lookup !== query ? ` (${lookup})` : ""} 사진 ${candidates.length}개 · 눌러서 넣으세요.`
+            : "사진을 찾지 못했습니다. 다른 검색어로 검색해 주세요.";
+        } catch (error) {
+          if (version === imageSearchVersion) imageStatus.textContent = "사진 검색 실패 · 기존 사진은 유지됩니다. 잠시 후 다시 검색해 주세요.";
+        } finally {
+          clearTimeout(timeout);
+          if (version === imageSearchVersion) imageSearchForm.setAttribute("aria-busy", "false");
+        }
+      }
+
+      function releasePanelURL(url) {
+        if (imageObjectURLs.delete(url)) URL.revokeObjectURL(url);
+      }
+
+      function selectPanelImage(candidate, localURL = null) {
+        const isLocal = localURL && imageObjectURLs.has(localURL) && candidate.url === localURL;
+        const url = isLocal ? localURL : safeImageLink(candidate.url, ["upload.wikimedia.org", "thumb.wikimedia.org"]);
+        if (!url) {
+          imageStatus.textContent = "지원하지 않는 사진 주소입니다. 기존 사진은 유지됩니다.";
+          return;
+        }
+        const version = ++imageSelectionVersion;
+        clearTimeout(imageLoadTimer);
+        if (imagePendingLocalURL) releasePanelURL(imagePendingLocalURL);
+        imagePendingLocalURL = isLocal ? localURL : null;
+        imageStatus.textContent = "사진을 불러오는 중…";
+        const loader = new Image();
+        loader.referrerPolicy = "no-referrer";
+        const failed = () => {
+          if (version !== imageSelectionVersion) return;
+          clearTimeout(imageLoadTimer);
+          if (imagePendingLocalURL) releasePanelURL(imagePendingLocalURL);
+          imagePendingLocalURL = null;
+          imageSelectionVersion += 1;
+          imageStatus.textContent = "사진을 불러오지 못했습니다. 기존 사진은 유지됩니다.";
+        };
+        loader.onerror = failed;
+        loader.onload = () => {
+          if (version !== imageSelectionVersion) return;
+          clearTimeout(imageLoadTimer);
+          if (imageLocalURL) releasePanelURL(imageLocalURL);
+          imageLocalURL = isLocal ? localURL : null;
+          imagePendingLocalURL = null;
+          imageSelected.src = url;
+          imageSelected.alt = candidate.title;
+          imageSelected.hidden = false;
+          imagePlaceholder.hidden = true;
+          imageCredit.replaceChildren();
+          if (isLocal) {
+            imageCredit.textContent = `내 사진: ${candidate.title} · 서버로 업로드하지 않습니다.`;
+          } else {
+            const source = document.createElement("a");
+            source.href = safeImageLink(candidate.source, ["commons.wikimedia.org"]);
+            source.textContent = "원본·출처";
+            source.target = "_blank";
+            source.rel = "noopener noreferrer";
+            imageCredit.append(source, document.createTextNode(` · ${candidate.title} · ${candidate.artist} · `));
+            const licenseURL = safeImageLink(candidate.licenseURL);
+            if (licenseURL) {
+              const license = document.createElement("a");
+              license.href = licenseURL;
+              license.textContent = candidate.license;
+              license.target = "_blank";
+              license.rel = "noopener noreferrer";
+              imageCredit.appendChild(license);
+            } else {
+              imageCredit.appendChild(document.createTextNode(candidate.license));
+            }
+          }
+          imageCredit.hidden = false;
+          imageRemoveBtn.disabled = false;
+          imageStatus.textContent = "사진을 넣었습니다. 다른 사진을 고르거나 지울 수 있습니다.";
+          desk.focus();
+        };
+        imageLoadTimer = setTimeout(failed, 20000);
+        loader.src = url;
+      }
+
+      function clearPanelImage() {
+        imageSelectionVersion += 1;
+        clearTimeout(imageLoadTimer);
+        for (const url of [...imageObjectURLs]) releasePanelURL(url);
+        imageLocalURL = null;
+        imagePendingLocalURL = null;
+        imageSelected.removeAttribute("src");
+        imageSelected.alt = "";
+        imageSelected.hidden = true;
+        imagePlaceholder.hidden = false;
+        imageCredit.replaceChildren();
+        imageCredit.hidden = true;
+        imageRemoveBtn.disabled = true;
+        imageFileInput.value = "";
+      }
+
+      function resetImagePanel() {
+        imageSearchVersion += 1;
+        imageSearchAbort?.abort();
+        imageResults.replaceChildren();
+        imageSearchInput.value = "";
+        imageSearchForm.setAttribute("aria-busy", "false");
+        clearPanelImage();
+        imageStatus.textContent = "검색 결과에서 사진을 누르면 상자에 들어갑니다.";
+      }
+      imagePanel.addEventListener("click", (event) => event.stopPropagation());
+      imagePanel.addEventListener("keydown", (event) => event.stopPropagation());
+      imageSearchForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        stopDemo();
+        searchPanelImages(imageSearchInput.value);
+      });
+      document.getElementById("imageRecommendBtn").addEventListener("click", () => {
+        stopDemo();
+        const query = extractImageKeyword(committedStr + automata.getComposingChar());
+        if (!query) {
+          imageStatus.textContent = "추천할 검색어를 찾지 못했습니다. 글을 더 쓰거나 직접 검색해 주세요.";
+          return;
+        }
+        imageSearchInput.value = query;
+        searchPanelImages(query);
+      });
+      imageRemoveBtn.addEventListener("click", () => {
+        clearPanelImage();
+        imageStatus.textContent = "사진을 지웠습니다.";
+      });
+      imageFileInput.addEventListener("change", () => {
+        const file = imageFileInput.files?.[0];
+        if (!file) return;
+        if (!/^image\/(?:jpeg|png|webp|gif)$/u.test(file.type) || file.size > 10 * 1024 * 1024) {
+          imageStatus.textContent = "10MB 이하의 JPG·PNG·WebP·GIF 사진을 골라 주세요.";
+          imageFileInput.value = "";
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        imageObjectURLs.add(url);
+        selectPanelImage({ url, title: file.name }, url);
+        imageFileInput.value = "";
+      });
+
       /* =========================================================================
    6. 물리 키보드 연동 - 한/영 상태와 무관하게 자판 위치(e.code)로 자모를 정한다
    ========================================================================= */
@@ -1694,6 +2091,7 @@
 
       function startDemo(resetText = false) {
         if (resetText) {
+          resetImagePanel();
           clearTypeImpacts();
           automata.reset();
           committedStr = INITIAL_TEXT;
