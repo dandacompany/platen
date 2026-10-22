@@ -242,6 +242,11 @@
         color: rgba(240, 228, 205, 1);
       }
 
+      .timestamp-btn {
+        font-size: 12px;
+        letter-spacing: 0.03em;
+      }
+
       .wordmark {
         font-family: "Courier Prime", monospace;
         font-size: 13px;
@@ -680,6 +685,9 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <button class="hud-btn timestamp-btn" id="timestampBtn" type="button">
+              시간 도장
+            </button>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -1430,6 +1438,17 @@
         });
       }
 
+      function formatCurrentTimestamp() {
+        const now = new Date();
+        const pad = (value) => String(value).padStart(2, "0");
+        return `[${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}]`;
+      }
+
+      function insertTimestamp() {
+        committedStr += automata.flush() + formatCurrentTimestamp();
+        updateScreen();
+      }
+
       const fontSelect = document.getElementById("fontSelect");
       fontSelect.addEventListener("change", () => {
         paperSheet.style.fontFamily = `"${fontSelect.value}", serif`;
@@ -1722,6 +1741,14 @@
         sound.init();
         stopDemo();
         startDemo(true);
+        desk.focus();
+      });
+
+      const timestampBtn = document.getElementById("timestampBtn");
+      timestampBtn.addEventListener("click", () => {
+        sound.init();
+        stopDemo();
+        insertTimestamp();
         desk.focus();
       });
 
