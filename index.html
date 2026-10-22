@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-music-theme="amber">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,6 +17,115 @@
     <style>
       :root {
         --lamp-x: 200px;
+        --room-bg: #0b0b0a;
+        --desk-bg: #1c1b18;
+        --paper-bg: #d2c9b6;
+        --ink-color: #1e1a15;
+        --ink-shadow: rgba(25, 20, 15, 0.55);
+        --composing-shadow: rgba(0, 0, 0, 0.85);
+        --lamp-core-rgb: 255, 232, 175;
+        --lamp-mid-rgb: 255, 214, 140;
+        --lamp-shadow-rgb: 22, 20, 17;
+        --lamp-edge-rgb: 14, 13, 11;
+        --lamp-core-alpha: 0.28;
+        --lamp-mid-alpha: 0.12;
+        --lamp-shadow-alpha: 0.48;
+        --lamp-edge-alpha: 0.78;
+        --lamp-glow: rgba(245, 190, 100, 0.25);
+        --bulb-core: #ffd885;
+        --bulb-mid: #e09638;
+        --bulb-edge: #6e4514;
+        --bulb-glow: rgba(255, 196, 95, 0.75);
+        --lamp-assembly-top: #1b1a17;
+        --lamp-assembly-bottom: #171613;
+        --lamp-rail-bg: #11100e;
+        --lamp-carriage-top: #2d2b26;
+        --lamp-carriage-bottom: #1e1d19;
+      }
+
+      :root[data-music-theme="amber"] {
+        --room-bg: #0b0b0a;
+      }
+
+      :root[data-music-theme="cocktail"] {
+        --room-bg: #100d0a;
+        --desk-bg: #241d16;
+        --paper-bg: #decfb3;
+        --ink-color: #2e2115;
+        --ink-shadow: rgba(38, 25, 12, 0.5);
+        --composing-shadow: rgba(38, 25, 12, 0.82);
+        --lamp-core-rgb: 255, 224, 164;
+        --lamp-mid-rgb: 244, 190, 119;
+        --lamp-shadow-rgb: 30, 24, 18;
+        --lamp-edge-rgb: 12, 11, 10;
+        --lamp-core-alpha: 0.3;
+        --lamp-mid-alpha: 0.14;
+        --lamp-shadow-alpha: 0.46;
+        --lamp-edge-alpha: 0.8;
+        --lamp-glow: rgba(255, 187, 99, 0.3);
+        --bulb-core: #ffe0a4;
+        --bulb-mid: #d58b3a;
+        --bulb-edge: #6a3812;
+        --bulb-glow: rgba(255, 187, 99, 0.8);
+        --lamp-assembly-top: #231b13;
+        --lamp-assembly-bottom: #17120d;
+        --lamp-rail-bg: #100d0a;
+        --lamp-carriage-top: #33271b;
+        --lamp-carriage-bottom: #211910;
+      }
+
+      :root[data-music-theme="quiet-night"] {
+        --room-bg: #080b14;
+        --desk-bg: #151923;
+        --paper-bg: #d3d8df;
+        --ink-color: #1c2735;
+        --ink-shadow: rgba(22, 30, 44, 0.52);
+        --composing-shadow: rgba(12, 20, 36, 0.84);
+        --lamp-core-rgb: 192, 208, 255;
+        --lamp-mid-rgb: 148, 171, 221;
+        --lamp-shadow-rgb: 11, 15, 24;
+        --lamp-edge-rgb: 7, 9, 17;
+        --lamp-core-alpha: 0.23;
+        --lamp-mid-alpha: 0.11;
+        --lamp-shadow-alpha: 0.53;
+        --lamp-edge-alpha: 0.84;
+        --lamp-glow: rgba(132, 159, 234, 0.24);
+        --bulb-core: #dce5ff;
+        --bulb-mid: #7594d1;
+        --bulb-edge: #3e4d7a;
+        --bulb-glow: rgba(155, 180, 255, 0.68);
+        --lamp-assembly-top: #171b25;
+        --lamp-assembly-bottom: #11141c;
+        --lamp-rail-bg: #0c0f16;
+        --lamp-carriage-top: #292f40;
+        --lamp-carriage-bottom: #1a202e;
+      }
+
+      :root[data-music-theme="ways"] {
+        --room-bg: #100b12;
+        --desk-bg: #201721;
+        --paper-bg: #e2d4d6;
+        --ink-color: #302231;
+        --ink-shadow: rgba(42, 28, 45, 0.52);
+        --composing-shadow: rgba(33, 21, 39, 0.84);
+        --lamp-core-rgb: 235, 207, 239;
+        --lamp-mid-rgb: 198, 163, 204;
+        --lamp-shadow-rgb: 24, 16, 27;
+        --lamp-edge-rgb: 13, 9, 16;
+        --lamp-core-alpha: 0.25;
+        --lamp-mid-alpha: 0.12;
+        --lamp-shadow-alpha: 0.5;
+        --lamp-edge-alpha: 0.82;
+        --lamp-glow: rgba(210, 161, 220, 0.26);
+        --bulb-core: #f0d8f1;
+        --bulb-mid: #a67ca7;
+        --bulb-edge: #5f3e64;
+        --bulb-glow: rgba(224, 170, 227, 0.72);
+        --lamp-assembly-top: #211924;
+        --lamp-assembly-bottom: #17121a;
+        --lamp-rail-bg: #100c12;
+        --lamp-carriage-top: #302638;
+        --lamp-carriage-bottom: #1f1824;
       }
 
       * {
@@ -28,7 +137,7 @@
       }
 
       body {
-        background-color: #0b0b0a;
+        background-color: var(--room-bg);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -45,7 +154,7 @@
         width: 100%;
         max-width: 860px;
         height: 100vh;
-        background-color: #1c1b18;
+        background-color: var(--desk-bg);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -66,7 +175,7 @@
         position: relative;
         flex: 1;
         width: 100%;
-        background-color: #d2c9b6;
+        background-color: var(--paper-bg);
         overflow: hidden;
         cursor: text;
       }
@@ -180,7 +289,7 @@
         font-family: "Gowun Batang", "Nanum Myeongjo", serif;
         font-size: 18px;
         line-height: 30px;
-        color: #1e1a15;
+        color: var(--ink-color);
         letter-spacing: -0.01em;
         transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
         z-index: 1;
@@ -189,11 +298,11 @@
       }
 
       .ink-text {
-        text-shadow: 0 0 0.6px rgba(25, 20, 15, 0.55);
+        text-shadow: 0 0 0.6px var(--ink-shadow);
       }
 
       .composing-char {
-        text-shadow: 0 0 0.9px rgba(0, 0, 0, 0.85);
+        text-shadow: 0 0 0.9px var(--composing-shadow);
       }
 
       #cursorAnchor {
@@ -248,6 +357,58 @@
         letter-spacing: 0.18em;
         color: rgba(175, 166, 148, 0.55);
         text-transform: uppercase;
+      }
+
+      .music-credit {
+        color: rgba(175, 166, 148, 0.7);
+        font-size: 13px;
+        text-decoration: none;
+      }
+      .music-credit:hover {
+        color: rgba(240, 228, 205, 1);
+      }
+
+      .music-playlist-details {
+        position: relative;
+      }
+      .music-playlist-details > summary {
+        list-style: none;
+      }
+      .music-playlist-details > summary::-webkit-details-marker {
+        display: none;
+      }
+      .music-playlist-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: min(280px, calc(100vw - 24px));
+        padding: 10px;
+        border: 1px solid #3c3932;
+        border-radius: 7px;
+        background: #1c1b18;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+      }
+      .music-playlist-select {
+        width: 230px;
+        max-width: calc(100vw - 80px);
+        padding: 6px 8px;
+        border: 1px solid #3c3932;
+        border-radius: 4px;
+        background: #171613;
+        color: rgba(230, 222, 206, 0.9);
+        font: 12px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          "Malgun Gothic", sans-serif;
+      }
+      @media (max-width: 520px) {
+        .music-playlist-panel {
+          position: fixed;
+          top: 66px;
+          left: 12px;
+        }
       }
 
       .hud-right {
@@ -348,7 +509,7 @@
       /* ================= 2. 램프 바 & 조명 컨트롤러 영역 ================= */
       .lamp-assembly {
         position: relative;
-        background: linear-gradient(180deg, #1b1a17 0%, #171613 100%);
+        background: linear-gradient(180deg, var(--lamp-assembly-top) 0%, var(--lamp-assembly-bottom) 100%);
         z-index: 10;
         padding-bottom: 4px;
         border-top: 1px solid #0e0d0c;
@@ -357,7 +518,7 @@
       .lamp-rail {
         position: relative;
         height: 22px;
-        background: #11100e;
+        background: var(--lamp-rail-bg);
         border-top: 1px solid #25231f;
         border-bottom: 1px solid #25231f;
         display: flex;
@@ -371,7 +532,7 @@
         transform: translateX(-50%);
         width: 116px;
         height: 20px;
-        background: linear-gradient(180deg, #2d2b26 0%, #1e1d19 100%);
+        background: linear-gradient(180deg, var(--lamp-carriage-top) 0%, var(--lamp-carriage-bottom) 100%);
         border: 1px solid #3c3932;
         border-radius: 5px;
         display: flex;
@@ -380,7 +541,7 @@
         gap: 10px;
         box-shadow:
           0 2px 10px rgba(0, 0, 0, 0.8),
-          0 -4px 18px rgba(245, 190, 100, 0.25);
+          0 -4px 18px var(--lamp-glow);
         transition: left 0.055s cubic-bezier(0.2, 0.9, 0.3, 1);
       }
 
@@ -390,11 +551,11 @@
         border-radius: 50%;
         background: radial-gradient(
           circle,
-          #ffd885 0%,
-          #e09638 70%,
-          #6e4514 100%
+          var(--bulb-core) 0%,
+          var(--bulb-mid) 70%,
+          var(--bulb-edge) 100%
         );
-        box-shadow: 0 0 8px 2px rgba(255, 196, 95, 0.75);
+        box-shadow: 0 0 8px 2px var(--bulb-glow);
         transition: opacity 0.2s;
       }
 
@@ -680,6 +841,34 @@
               ←
             </button>
             <span class="wordmark">Platen</span>
+            <button
+              type="button"
+              class="hud-btn"
+              id="musicToggleBtn"
+              aria-label="재즈 배경음악 재생"
+              aria-pressed="false"
+              title="재즈 배경음악 재생"
+            >♫</button>
+            <details class="music-playlist-details" id="musicPlaylistDetails">
+              <summary class="hud-btn" aria-label="플레이리스트 선택" title="플레이리스트 선택">▾</summary>
+              <div class="music-playlist-panel">
+                <select id="musicPlaylistSelect" class="music-playlist-select" aria-label="재즈 배경음악 선택">
+                  <option value="0" selected data-theme="amber" data-src="assets/mike-sheldon-background-jazz.mp3" data-credit-url="https://elleo.itch.io/background-jazz" data-credit="Background Jazz Piano by Mike Sheldon — CC BY 4.0">Background Jazz Piano — Mike Sheldon · CC BY 4.0</option>
+                  <option value="1" data-theme="cocktail" data-src="assets/alex-productions-cocktail.mp3" data-credit-url="https://www.free-stock-music.com/alex-productions-cocktail.html" data-credit="Cocktail by Alex-Productions; Royalty Free Music by free-stock-music.com — CC BY 3.0">Cocktail — Alex-Productions · CC BY 3.0</option>
+                  <option value="2" data-theme="quiet-night" data-src="assets/tokyo-music-walker-quiet-night.mp3" data-credit-url="https://www.free-stock-music.com/tokyo-music-walker-quiet-night.html" data-credit="Quiet Night by Tokyo Music Walker; Royalty Free Music by free-stock-music.com — CC BY 3.0">Quiet Night — Tokyo Music Walker · CC BY 3.0</option>
+                  <option value="3" data-theme="ways" data-src="assets/alex-productions-ways.mp3" data-credit-url="https://www.free-stock-music.com/alex-productions-ways.html" data-credit="Ways by Alex-Productions; Royalty Free Music by free-stock-music.com — CC BY 3.0">Ways — Alex-Productions · CC BY 3.0</option>
+                </select>
+                <a
+                  class="music-credit"
+                  id="musicCreditLink"
+                  href="https://elleo.itch.io/background-jazz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Background Jazz Piano by Mike Sheldon, licensed under CC BY 4.0"
+                  title="Background Jazz Piano by Mike Sheldon — CC BY 4.0"
+                >ⓘ</a>
+              </div>
+            </details>
           </div>
           <div class="hud-right">
             <span class="demo-badge" id="demoToggleBtn">자동 타이핑 중 ⏸</span>
@@ -688,6 +877,10 @@
             </div>
           </div>
         </div>
+
+        <audio id="backgroundMusic" loop preload="none" hidden aria-hidden="true">
+          <source src="assets/mike-sheldon-background-jazz.mp3" type="audio/mpeg" />
+        </audio>
 
         <!-- 타자기 종이 시트 -->
         <div class="paper-sheet" id="paperSheet">
@@ -931,6 +1124,74 @@
       }
 
       const sound = new TypewriterAudio();
+
+      const backgroundMusic = document.getElementById("backgroundMusic");
+      const musicToggleBtn = document.getElementById("musicToggleBtn");
+      const musicPlaylistSelect = document.getElementById("musicPlaylistSelect");
+      const musicCreditLink = document.getElementById("musicCreditLink");
+      const musicPlaylistDetails = document.getElementById("musicPlaylistDetails");
+      backgroundMusic.volume = 0.28;
+
+      function setMusicPlaying(isPlaying) {
+        musicToggleBtn.textContent = isPlaying ? "Ⅱ" : "♫";
+        musicToggleBtn.setAttribute(
+          "aria-label",
+          isPlaying ? "재즈 배경음악 일시정지" : "재즈 배경음악 재생",
+        );
+        musicToggleBtn.setAttribute("aria-pressed", String(isPlaying));
+      }
+
+      async function playBackgroundMusic() {
+        try {
+          await backgroundMusic.play();
+          setMusicPlaying(true);
+        } catch {
+          setMusicPlaying(false);
+        }
+      }
+
+      function updateMusicCredit(option) {
+        musicCreditLink.href = option.dataset.creditUrl;
+        musicCreditLink.title = option.dataset.credit;
+        musicCreditLink.setAttribute(
+          "aria-label",
+          `${option.dataset.credit}; open source and license details`,
+        );
+      }
+
+      updateMusicCredit(musicPlaylistSelect.selectedOptions[0]);
+      musicPlaylistDetails.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+      musicPlaylistDetails.addEventListener("keydown", (event) => {
+        event.stopPropagation();
+      });
+      musicPlaylistSelect.addEventListener("change", () => {
+        const wasPlaying = !backgroundMusic.paused;
+        const option = musicPlaylistSelect.selectedOptions[0];
+        backgroundMusic.pause();
+        backgroundMusic.src = option.dataset.src;
+        backgroundMusic.load();
+        document.documentElement.dataset.musicTheme = option.dataset.theme;
+        updateLightingOverlay();
+        updateMusicCredit(option);
+        if (wasPlaying) playBackgroundMusic();
+      });
+
+      musicToggleBtn.addEventListener("keydown", (event) => {
+        event.stopPropagation();
+      });
+      musicToggleBtn.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        if (backgroundMusic.paused) {
+          await playBackgroundMusic();
+          return;
+        }
+
+        backgroundMusic.pause();
+        setMusicPlaying(false);
+      });
+      musicCreditLink.addEventListener("click", (event) => event.stopPropagation());
 
       /* =========================================================================
    2. 한글 두벌식 자모 조합 오토마타
@@ -1504,7 +1765,7 @@
         const y = (viewportH || paperViewport.clientHeight) + 6;
 
         if (!isLampOn) {
-          lightingLayer.style.background = `rgba(10, 10, 9, 0.88)`;
+          lightingLayer.style.background = `rgba(var(--lamp-shadow-rgb), 0.88)`;
           return;
         }
 
@@ -1523,13 +1784,15 @@
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(255, 232, 175, 0.28) 0%,
-      rgba(255, 214, 140, 0.12) ${coreStop}%,
-      rgba(22, 20, 17, 0.48) ${midStop}%,
-      rgba(14, 13, 11, 0.78) 100%
+      rgba(var(--lamp-core-rgb), var(--lamp-core-alpha)) 0%,
+      rgba(var(--lamp-mid-rgb), var(--lamp-mid-alpha)) ${coreStop}%,
+      rgba(var(--lamp-shadow-rgb), var(--lamp-shadow-alpha)) ${midStop}%,
+      rgba(var(--lamp-edge-rgb), var(--lamp-edge-alpha)) 100%
     )
   `;
       }
+
+      updateLightingOverlay();
 
       [focusSlider, spreadSlider, distSlider].forEach((slider) => {
         slider.addEventListener("input", () => updateLightingOverlay());
