@@ -1583,7 +1583,7 @@
       });
 
       /* =========================================================================
-   6. 물리 키보드 연동 - 한/영 상태와 무관하게 자판 위치(e.code)로 자모를 정한다
+   6. 물리 키보드 연동 - 한글 모드에서는 자판 위치(e.code)로 자모를 정하고 영어 모드에서는 영문을 입력한다
    ========================================================================= */
       const CODE_TO_JAMO = {
         KeyQ: ["ㅂ", "ㅃ"],
@@ -1625,6 +1625,8 @@
           e.code === "HangulMode" ||
           e.code === "Lang1"
         ) {
+          if (e.repeat) return;
+          stopDemo();
           e.preventDefault();
           const pending = automata.flush();
           if (pending) committedStr += pending;
@@ -1664,7 +1666,15 @@
           return;
         }
 
-        // 알파벳 자판 위치(KeyA ~ KeyZ)는 한/영 상태와 무관하게 두벌식 한글 자모로
+        // IME가 영어 알파벳을 Process로 보고하면 자판 위치에서 영문을 복원한다.
+        if (isEnglishMode && e.key === "Process" && e.code.startsWith("Key")) {
+          e.preventDefault();
+          const letter = e.code.slice(3);
+          handleKey(e.shiftKey ? letter : letter.toLowerCase());
+          return;
+        }
+
+        // 한글 모드의 알파벳 자판 위치(KeyA ~ KeyZ)는 두벌식 한글 자모로 변환한다.
         if (CODE_TO_JAMO[e.code]) {
           e.preventDefault();
           const jamo = e.shiftKey
