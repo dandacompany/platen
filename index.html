@@ -1305,6 +1305,7 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      let isEnglishMode = false;
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
@@ -1618,8 +1619,22 @@
         if (e.target === fontSelect || e.target === impactToggle) return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-        // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
-        if (e.key === "Shift" || e.key === "CapsLock" || e.key === "HangulMode")
+        // 한/영 키는 조합 중인 한글을 확정한 뒤 입력 모드를 전환한다.
+        if (
+          e.key === "HangulMode" ||
+          e.code === "HangulMode" ||
+          e.code === "Lang1"
+        ) {
+          e.preventDefault();
+          const pending = automata.flush();
+          if (pending) committedStr += pending;
+          isEnglishMode = !isEnglishMode;
+          updateScreen();
+          return;
+        }
+
+        // Shift·CapsLock 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다.
+        if (e.key === "Shift" || e.key === "CapsLock")
           return;
 
         stopDemo();
@@ -1639,6 +1654,13 @@
         if (e.code === "Space" || e.key === " ") {
           e.preventDefault();
           handleKey(" ");
+          return;
+        }
+
+        // 영어 모드에서는 브라우저가 해석한 영문 대소문자와 문장부호를 그대로 입력한다.
+        if (isEnglishMode && e.key && e.key.length === 1 && e.key !== "Process") {
+          e.preventDefault();
+          handleKey(e.key);
           return;
         }
 
