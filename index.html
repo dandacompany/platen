@@ -807,6 +807,15 @@
             <option value="Gowun Batang">고운바탕 · 부드럽게</option>
             <option value="Nanum Myeongjo">나눔명조 · 우아하게</option>
           </select>
+          <label for="soundProfileSelect">입력 소리</label>
+          <select id="soundProfileSelect" class="font-select">
+            <option value="typewriter" selected>타자기</option>
+            <option value="pencil">연필</option>
+            <option value="fountainpen">깃펜 · 거칠게</option>
+            <option value="balloon">풍선 · 펑펑</option>
+            <option value="camera">카메라 · 찰칵!</option>
+            <option value="firework">레이저 · 뿅뿅</option>
+          </select>
           <label><input id="impactToggle" type="checkbox" checked /> 잉크 효과</label>
         </div>
 
@@ -845,14 +854,50 @@
           } catch (e) {}
         }
 
-        playKeyClick(isSpace = false) {
+        playKeyClick(isSpace = false, profile = "typewriter") {
           try {
             this.init();
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
+            const profiles = {
+              pencil: { duration: 0.028, frequency: 980, gain: 0.18, tone: 170 },
+              fountainpen: {
+                duration: 0.075,
+                frequency: 620,
+                gain: 0.33,
+                tone: 118,
+                noiseDecay: 0.022,
+              },
+              balloon: {
+                duration: 0.32,
+                frequency: 1320,
+                gain: 0.16,
+                tone: 95,
+                toneGain: 0.08,
+                noiseDecay: 0.14,
+              },
+              camera: {
+                duration: 0.04,
+                frequency: 2450,
+                gain: 0.5,
+                tone: 900,
+                toneGain: 0.42,
+                noiseDecay: 0.006,
+              },
+              firework: {
+                duration: 0.24,
+                frequency: 2350,
+                gain: 0.46,
+                tone: 920,
+                toneGain: 0.18,
+                noiseDecay: 0.06,
+              },
+              typewriter: { duration: 0.04, frequency: 1750, gain: 0.65, tone: 240 },
+            };
+            const selected = profiles[profile] || profiles.typewriter;
 
             const bufferSize = Math.floor(
-              this.ctx.sampleRate * (isSpace ? 0.055 : 0.04),
+              this.ctx.sampleRate * (isSpace ? 0.055 : selected.duration),
             );
             const buffer = this.ctx.createBuffer(
               1,
@@ -863,7 +908,11 @@
             for (let i = 0; i < bufferSize; i++) {
               data[i] =
                 (Math.random() * 2 - 1) *
-                Math.exp(-i / (this.ctx.sampleRate * 0.008));
+                Math.exp(
+                  -i /
+                    (this.ctx.sampleRate *
+                      (selected.noiseDecay || 0.008)),
+                );
             }
 
             const noise = this.ctx.createBufferSource();
@@ -872,14 +921,17 @@
             const filter = this.ctx.createBiquadFilter();
             filter.type = "bandpass";
             filter.frequency.setValueAtTime(
-              isSpace ? 900 : 1750 + (Math.random() * 350 - 175),
+              isSpace ? 900 : selected.frequency + (Math.random() * 180 - 90),
               now,
             );
             filter.Q.setValueAtTime(2.2, now);
 
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(isSpace ? 0.45 : 0.65, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.038);
+            gain.gain.setValueAtTime(isSpace ? 0.45 : selected.gain, now);
+            gain.gain.exponentialRampToValueAtTime(
+              0.01,
+              now + selected.duration,
+            );
 
             noise.connect(filter);
             filter.connect(gain);
@@ -888,17 +940,26 @@
 
             const osc = this.ctx.createOscillator();
             const oscGain = this.ctx.createGain();
-            osc.type = "triangle";
-            osc.frequency.setValueAtTime(isSpace ? 140 : 240, now);
-            osc.frequency.exponentialRampToValueAtTime(55, now + 0.035);
+            osc.type = profile === "pencil" ? "sine" : "triangle";
+            osc.frequency.setValueAtTime(isSpace ? 140 : selected.tone, now);
+            osc.frequency.exponentialRampToValueAtTime(
+              55,
+              now + selected.duration,
+            );
 
-            oscGain.gain.setValueAtTime(0.25, now);
-            oscGain.gain.exponentialRampToValueAtTime(0.005, now + 0.035);
+            oscGain.gain.setValueAtTime(
+              selected.gain * (selected.toneGain || 0.38),
+              now,
+            );
+            oscGain.gain.exponentialRampToValueAtTime(
+              0.005,
+              now + selected.duration,
+            );
 
             osc.connect(oscGain);
             oscGain.connect(this.ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.038);
+            osc.stop(now + selected.duration);
           } catch (e) {}
         }
 
@@ -1431,6 +1492,31 @@
       }
 
       const fontSelect = document.getElementById("fontSelect");
+      const soundProfileSelect = document.getElementById("soundProfileSelect");
+
+      try {
+        const savedSoundProfile = localStorage.getItem("platen-sound-profile");
+        const resolvedSoundProfile =
+          savedSoundProfile === "continuousscratch" ? "balloon" : savedSoundProfile;
+        if (
+          resolvedSoundProfile &&
+          [...soundProfileSelect.options].some(
+            (option) => option.value === resolvedSoundProfile,
+          )
+        ) {
+          soundProfileSelect.value = resolvedSoundProfile;
+          localStorage.setItem("platen-sound-profile", resolvedSoundProfile);
+        }
+      } catch (e) {}
+
+      soundProfileSelect.addEventListener("change", () => {
+        try {
+          localStorage.setItem("platen-sound-profile", soundProfileSelect.value);
+        } catch (e) {}
+        sound.init();
+        desk.focus();
+      });
+
       fontSelect.addEventListener("change", () => {
         paperSheet.style.fontFamily = `"${fontSelect.value}", serif`;
         updateScreen();
@@ -1442,7 +1528,7 @@
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
         if (k === "BACK") {
-          sound.playKeyClick(false);
+          sound.playKeyClick(false, soundProfileSelect.value);
           triggerStrike();
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
@@ -1452,7 +1538,7 @@
         }
 
         if (k === " ") {
-          sound.playKeyClick(true);
+          sound.playKeyClick(true, soundProfileSelect.value);
           triggerStrike();
           committedStr += automata.flush() + " ";
           updateScreen();
@@ -1467,7 +1553,7 @@
           return;
         }
 
-        sound.playKeyClick(false);
+        sound.playKeyClick(false, soundProfileSelect.value);
         triggerStrike();
 
         const res = automata.inputJamo(k);
@@ -1615,7 +1701,12 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target === fontSelect ||
+          e.target === soundProfileSelect ||
+          e.target === impactToggle
+        )
+          return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
