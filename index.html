@@ -17,6 +17,27 @@
     <style>
       :root {
         --lamp-x: 200px;
+        --paper-color: #f5e47f;
+        --paper-ink: #3c321b;
+        --paper-texture-opacity: 0.16;
+      }
+
+      .desk[data-theme="focus"] {
+        --paper-color: #f5e47f;
+        --paper-ink: #3c321b;
+        --paper-texture-opacity: 0.16;
+      }
+
+      .desk[data-theme="diary"] {
+        --paper-color: #e6d4b5;
+        --paper-ink: #4b3825;
+        --paper-texture-opacity: 0.42;
+      }
+
+      .desk[data-theme="ideas"] {
+        --paper-color: #f0f4f4;
+        --paper-ink: #29363b;
+        --paper-texture-opacity: 0.1;
       }
 
       * {
@@ -66,7 +87,7 @@
         position: relative;
         flex: 1;
         width: 100%;
-        background-color: #d2c9b6;
+        background-color: var(--paper-color);
         overflow: hidden;
         cursor: text;
       }
@@ -75,10 +96,37 @@
       .paper-texture {
         position: absolute;
         inset: 0;
-        opacity: 0.36;
+        opacity: var(--paper-texture-opacity);
         pointer-events: none;
         z-index: 2;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.55'/%3E%3C/svg%3E");
+      }
+
+      .paper-texture::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .desk[data-theme="focus"] .paper-texture::after {
+        background-image: repeating-linear-gradient(
+          0deg,
+          rgba(92, 73, 20, 0.045) 0 1px,
+          transparent 1px 6px
+        );
+      }
+
+      .desk[data-theme="diary"] .paper-texture::after {
+        background-image:
+          radial-gradient(ellipse at center, transparent 45%, rgba(92, 62, 31, 0.18) 100%),
+          repeating-linear-gradient(91deg, rgba(95, 67, 37, 0.035) 0 1px, transparent 1px 5px);
+      }
+
+      .desk[data-theme="ideas"] .paper-texture::after {
+        background-image: radial-gradient(circle, rgba(74, 100, 112, 0.2) 0.6px, transparent 0.8px);
+        background-size: 22px 22px;
+        opacity: 0.28;
       }
 
       /* 조명 위에 그리되 종이와 같은 transform 으로 움직여, 줄바꿈 때도 입력 위치에 붙어 있게 한다 */
@@ -180,7 +228,7 @@
         font-family: "Gowun Batang", "Nanum Myeongjo", serif;
         font-size: 18px;
         line-height: 30px;
-        color: #1e1a15;
+        color: var(--paper-ink);
         letter-spacing: -0.01em;
         transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
         z-index: 1;
@@ -667,7 +715,7 @@
     </style>
   </head>
   <body>
-    <div class="desk" id="desk" tabindex="0">
+    <div class="desk" id="desk" data-theme="focus" tabindex="0">
       <!-- 1. 종이 및 타자기 인쇄 영역 -->
       <div class="paper-viewport" id="paperViewport">
         <div class="paper-texture"></div>
@@ -802,6 +850,12 @@
              https://github.com/google/fonts/blob/main/ofl/gowunbatang/OFL.txt
              https://github.com/google/fonts/blob/main/ofl/nanummyeongjo/OFL.txt -->
         <div class="font-controls">
+          <label for="writingThemeSelect">배경 테마</label>
+          <select id="writingThemeSelect" class="font-select">
+            <option value="focus">집중</option>
+            <option value="diary">일기</option>
+            <option value="ideas">아이디어</option>
+          </select>
           <label for="fontSelect">종이 글꼴</label>
           <select id="fontSelect" class="font-select">
             <option value="Gowun Batang">고운바탕 · 부드럽게</option>
@@ -1431,9 +1485,14 @@
       }
 
       const fontSelect = document.getElementById("fontSelect");
+      const writingThemeSelect = document.getElementById("writingThemeSelect");
       fontSelect.addEventListener("change", () => {
         paperSheet.style.fontFamily = `"${fontSelect.value}", serif`;
         updateScreen();
+      });
+      writingThemeSelect.addEventListener("change", () => {
+        desk.dataset.theme = writingThemeSelect.value;
+        updateLightingOverlay();
       });
       // 웹폰트가 늦게 도착해도 인쇄선과 램프 위치를 다시 맞춘다.
       document.fonts.ready.then(() => updateScreen());
@@ -1502,11 +1561,16 @@
           ) ||
           200;
         const y = (viewportH || paperViewport.clientHeight) + 6;
+        const diaryTheme = desk.dataset.theme === "diary";
+        const ideasTheme = desk.dataset.theme === "ideas";
 
         if (!isLampOn) {
+          lightingLayer.style.opacity = "1";
           lightingLayer.style.background = `rgba(10, 10, 9, 0.88)`;
           return;
         }
+
+        lightingLayer.style.opacity = ideasTheme ? "0.38" : diaryTheme ? "0.48" : "0.18";
 
         const focus = parseFloat(focusSlider.value);
         const spread = parseFloat(spreadSlider.value);
@@ -1515,16 +1579,26 @@
         spreadLabel.textContent = `확산 ${Math.round(spread)}°`;
         distLabel.textContent = `거리 ${Math.round(dist)}%`;
 
-        const radiusX = spread * 2.6;
-        const radiusY = dist * 4.2;
+        const radiusX = spread * (ideasTheme ? 3.6 : diaryTheme ? 2.9 : 2.6);
+        const radiusY = dist * (ideasTheme ? 6.4 : diaryTheme ? 4.8 : 4.2);
         const coreStop = Math.max(8, (105 - focus) * 0.35);
         const midStop = Math.min(78, coreStop + (115 - focus) * 0.55);
+        const coreLight = diaryTheme
+          ? "255, 218, 162"
+          : ideasTheme
+            ? "225, 239, 240"
+            : "255, 232, 175";
+        const midLight = diaryTheme
+          ? "255, 193, 128"
+          : ideasTheme
+            ? "198, 220, 224"
+            : "255, 214, 140";
 
         lightingLayer.style.background = `
     radial-gradient(
       ellipse ${radiusX}px ${radiusY}px at ${x}px ${y}px,
-      rgba(255, 232, 175, 0.28) 0%,
-      rgba(255, 214, 140, 0.12) ${coreStop}%,
+      rgba(${coreLight}, 0.28) 0%,
+      rgba(${midLight}, 0.12) ${coreStop}%,
       rgba(22, 20, 17, 0.48) ${midStop}%,
       rgba(14, 13, 11, 0.78) 100%
     )
@@ -1615,7 +1689,12 @@
 
       window.addEventListener("keydown", (e) => {
         // 글꼴 메뉴의 방향키·Enter·문자 탐색은 종이에 입력하지 않는다.
-        if (e.target === fontSelect || e.target === impactToggle) return;
+        if (
+          e.target === fontSelect ||
+          e.target === writingThemeSelect ||
+          e.target === impactToggle
+        )
+          return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
 
         // Shift·CapsLock·한/영 키 단독 입력은 무시. IME 가 'Process' 로 보내도 e.code 는 살아 있으므로 아래에서 처리한다
