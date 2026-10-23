@@ -1305,6 +1305,24 @@
    ========================================================================= */
       const automata = new HangulAutomata();
       let committedStr = INITIAL_TEXT;
+      const NOTE_STORAGE_KEY = "platen-note-text";
+
+      function loadSavedNote() {
+        try {
+          const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
+          return savedNote === null ? null : savedNote;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function saveNote() {
+        try {
+          localStorage.setItem(NOTE_STORAGE_KEY, committedStr);
+        } catch (error) {
+          // 저장 공간을 사용할 수 없어도 타이핑은 계속할 수 있다.
+        }
+      }
 
       const desk = document.getElementById("desk");
       const committedEl = document.getElementById("committedText");
@@ -1448,6 +1466,7 @@
             committedStr = committedStr.slice(0, -1);
           }
           updateScreen();
+          saveNote();
           return;
         }
 
@@ -1456,6 +1475,7 @@
           triggerStrike();
           committedStr += automata.flush() + " ";
           updateScreen();
+          saveNote();
           return;
         }
 
@@ -1464,6 +1484,7 @@
           triggerStrike();
           committedStr += automata.flush() + "\n";
           updateScreen();
+          saveNote();
           return;
         }
 
@@ -1476,6 +1497,7 @@
         }
         updateScreen();
         triggerTypeImpact();
+        if (res.committed || !automata.getComposingChar()) saveNote();
       }
 
       /* =========================================================================
@@ -1698,6 +1720,12 @@
           automata.reset();
           committedStr = INITIAL_TEXT;
           demoIdx = 0;
+          try {
+            localStorage.removeItem(NOTE_STORAGE_KEY);
+          } catch (error) {
+            // 저장 공간을 사용할 수 없어도 리셋은 계속한다.
+          }
+          saveNote();
           updateScreen();
         }
         isDemoRunning = true;
@@ -1738,6 +1766,8 @@
       window.addEventListener("resize", () => updateScreen());
 
       // 초기 실행
+      const savedNote = loadSavedNote();
+      if (savedNote !== null) committedStr = savedNote;
       updateScreen();
       desk.focus();
       startDemo(false);
