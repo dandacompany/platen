@@ -333,6 +333,176 @@
         animation: typeStrike 0.07s ease-out;
       }
 
+      .feather-guide {
+        display: none;
+        position: absolute;
+        left: var(--lamp-x);
+        bottom: 12px;
+        width: 92px;
+        height: 68px;
+        transform: translateX(calc(-12% - 28px)) rotate(0deg);
+        transition: left 0.055s cubic-bezier(0.2, 0.9, 0.3, 1);
+        filter: drop-shadow(1px 3px 3px rgba(0, 0, 0, 0.62));
+        z-index: 0;
+      }
+
+      /* 실제 깃털처럼 중심맥과 잔깃이 분리된 작은 실루엣 */
+      .feather-plume {
+        position: absolute;
+        left: 4px;
+        top: 1px;
+        width: 58px;
+        height: 35px;
+        border-radius: 78% 12% 72% 18%;
+        background:
+          linear-gradient(106deg, transparent 0 41%, rgba(255, 244, 204, 0.38) 42% 44%, transparent 45%),
+          linear-gradient(140deg, #f1e4c4 0%, #c4ad83 34%, #8e7654 72%, #55432f 100%);
+        clip-path: polygon(0 71%, 10% 45%, 28% 25%, 55% 8%, 86% 0, 73% 18%, 100% 21%, 80% 34%, 94% 44%, 70% 49%, 80% 65%, 52% 59%, 45% 83%, 31% 65%, 12% 89%);
+        transform: rotate(-23deg);
+        box-shadow: inset -5px -4px 5px rgba(55, 38, 22, 0.22), inset 3px 2px 4px rgba(255, 248, 220, 0.22);
+      }
+
+      .feather-barbs {
+        position: absolute;
+        left: 11px;
+        top: 6px;
+        width: 51px;
+        height: 31px;
+        opacity: 0.72;
+        transform: rotate(-23deg);
+        background: repeating-linear-gradient(153deg, transparent 0 4px, rgba(75, 54, 34, 0.52) 4.5px 5.2px, transparent 5.8px 8px);
+        clip-path: polygon(0 65%, 100% 0, 82% 48%, 100% 63%, 58% 58%, 48% 100%, 31% 70%);
+      }
+
+      .feather-rachis {
+        position: absolute;
+        left: 19px;
+        top: 7px;
+        width: 3px;
+        height: 46px;
+        border-radius: 100%;
+        background: linear-gradient(90deg, #4a3522, #e0c48e 42%, #8b673e 72%, #342316);
+        transform: rotate(-41deg);
+        transform-origin: center bottom;
+        box-shadow: 1px 0 1px rgba(255, 239, 184, 0.32);
+      }
+
+      .feather-quill {
+        position: absolute;
+        left: 55px;
+        top: 28px;
+        width: 3px;
+        height: 29px;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #6b4b2d, #d2b277 43%, #7d5834 72%, #362316);
+        transform: rotate(-20deg);
+        box-shadow: 1px 0 1px rgba(255, 236, 173, 0.28);
+      }
+
+      .feather-collar {
+        position: absolute;
+        left: 52px;
+        top: 49px;
+        width: 10px;
+        height: 5px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #e5cf9d, #80613a 52%, #332314);
+        transform: rotate(-20deg);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.42);
+      }
+
+      .feather-nib {
+        position: absolute;
+        left: 52px;
+        bottom: 0;
+        width: 11px;
+        height: 11px;
+        border: 1px solid #d7c08c;
+        background: linear-gradient(135deg, #f0ddb0 0%, #9b7d4d 42%, #3b2b1b 54%, #17120d 100%);
+        clip-path: polygon(0 0, 100% 42%, 38% 100%, 23% 53%);
+        transform: rotate(-20deg);
+        filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.6));
+      }
+
+      .feather-art {
+        display: block;
+        width: 92px;
+        height: 68px;
+        overflow: visible;
+      }
+
+      .feather-art .feather-vane,
+      .feather-art .feather-edge,
+      .feather-art .feather-barb-lines,
+      .feather-art .feather-rachis,
+      .feather-art .feather-quill,
+      .feather-art .feather-collar,
+      .feather-art .feather-nib {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .feather-art .feather-vane {
+        opacity: 0.96;
+      }
+
+      .feather-art .feather-edge {
+        stroke: rgba(49, 47, 42, 0.86);
+        stroke-width: 1.25;
+        vector-effect: non-scaling-stroke;
+      }
+
+      .feather-art .feather-barb-lines {
+        stroke: rgba(75, 54, 34, 0.48);
+        stroke-width: 0.8;
+        stroke-linecap: round;
+      }
+
+      .feather-art .feather-rachis {
+        stroke: url(#quillShaft);
+        stroke-width: 2.2;
+        stroke-linecap: round;
+      }
+
+      .feather-art .feather-quill {
+        stroke: url(#quillHandle);
+        stroke-width: 3.2;
+        stroke-linecap: round;
+      }
+
+      .feather-art .feather-collar {
+        fill: #9b7748;
+        stroke: #e0c38b;
+        stroke-width: 0.7;
+      }
+
+      .feather-art .feather-nib {
+        fill: #111111;
+        stroke: #000000;
+        stroke-width: 1;
+      }
+
+      .feather-guide.stroke {
+        animation: featherStroke 0.16s ease-out;
+      }
+
+      .feather-mode .type-guide { display: none; }
+      .feather-mode .feather-guide { display: block; }
+
+      @keyframes featherStroke {
+        0% { transform: translateX(calc(-12% - 28px)) rotate(0deg) translateY(0); }
+        45% { transform: translateX(calc(-12% - 28px)) rotate(-2deg) translateY(-2px); }
+        100% { transform: translateX(calc(-12% - 28px)) rotate(0deg) translateY(0); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .feather-guide { transition: none; }
+        .feather-guide.stroke { animation: none; }
+      }
+
       @keyframes typeStrike {
         0% {
           transform: translateX(-50%) translateY(0) scaleY(1);
@@ -704,6 +874,39 @@
           <div class="type-guide" id="typeGuide">
             <div class="type-guide-base"></div>
           </div>
+          <div class="feather-guide" id="featherGuide" aria-hidden="true">
+            <svg class="feather-art" viewBox="0 0 110 80" role="img" aria-label="깃털펜">
+              <defs>
+                <linearGradient id="quillVane" x1="0" y1="0" x2="0.9" y2="1">
+                  <stop offset="0" stop-color="#ffffff" />
+                  <stop offset="0.55" stop-color="#f1f1ee" />
+                  <stop offset="1" stop-color="#c7c6bd" />
+                </linearGradient>
+                <linearGradient id="quillShaft" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#e8d49d" />
+                  <stop offset="0.55" stop-color="#b9924f" />
+                  <stop offset="1" stop-color="#7b552d" />
+                </linearGradient>
+                <linearGradient id="quillHandle" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#e9b777" />
+                  <stop offset="0.5" stop-color="#b87538" />
+                  <stop offset="1" stop-color="#70401f" />
+                </linearGradient>
+                <linearGradient id="quillNib" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#5a4634" />
+                  <stop offset="0.5" stop-color="#211a16" />
+                  <stop offset="1" stop-color="#080706" />
+                </linearGradient>
+              </defs>
+              <path class="feather-vane" d="M13 61 C20 44 39 25 96 8 L78 19 L88 21 L69 28 L80 33 L60 35 L70 42 L50 41 L56 50 L37 47 L40 57 L23 52 L25 62 Z" fill="url(#quillVane)" />
+              <path class="feather-edge" d="M13 61 C20 44 39 25 96 8 L78 19 L88 21 L69 28 L80 33 L60 35 L70 42 L50 41 L56 50 L37 47 L40 57 L23 52 L25 62 Z" fill="none" />
+              <path class="feather-barb-lines" d="M25 51 38 43M23 45 46 35M29 38 53 28M37 31 61 22M47 24 70 16M40 47 58 34M48 41 67 28M56 35 76 21M62 31 84 20M50 50 67 38" fill="none" />
+              <path class="feather-rachis" d="M8 67 C30 48 57 28 96 8" fill="none" />
+              <path class="feather-quill" d="M8 67 C10 70 14 72 19 74" fill="none" />
+              <ellipse class="feather-collar" cx="8" cy="69" rx="5" ry="3" />
+              <path class="feather-nib" d="M8 66 0 70 8 74 12 70Z" fill="#111111" stroke="#000000" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -802,6 +1005,11 @@
              https://github.com/google/fonts/blob/main/ofl/gowunbatang/OFL.txt
              https://github.com/google/fonts/blob/main/ofl/nanummyeongjo/OFL.txt -->
         <div class="font-controls">
+          <label for="writingModeSelect">작성 도구</label>
+          <select id="writingModeSelect" class="font-select">
+            <option value="typewriter">타자기 · 또각또각</option>
+            <option value="feather">깃털펜 · 사각사각</option>
+          </select>
           <label for="fontSelect">종이 글꼴</label>
           <select id="fontSelect" class="font-select">
             <option value="Gowun Batang">고운바탕 · 부드럽게</option>
@@ -840,7 +1048,8 @@
               if (AudioCtx) this.ctx = new AudioCtx();
             }
             if (this.ctx && this.ctx.state === "suspended") {
-              this.ctx.resume();
+              const resumeResult = this.ctx.resume();
+              if (resumeResult && resumeResult.catch) resumeResult.catch(() => {});
             }
           } catch (e) {}
         }
@@ -928,9 +1137,81 @@
             });
           } catch (e) {}
         }
+
+        // 고주파 펜촉 마찰음 + 낮은 종이 섬유층의 사각사각 질감
+        playFeatherStroke(kind = "key") {
+          try {
+            this.init();
+            if (!this.ctx) return;
+            const profile = {
+              key: { duration: 0.105, frequency: 2850, gain: 0.26 },
+              space: { duration: 0.14, frequency: 2350, gain: 0.28 },
+              return: { duration: 0.2, frequency: 1850, gain: 0.3 },
+              backspace: { duration: 0.12, frequency: 2650, gain: 0.27 },
+            }[kind] || { duration: 0.105, frequency: 2850, gain: 0.26 };
+            const now = this.ctx.currentTime;
+            const bufferSize = Math.floor(this.ctx.sampleRate * profile.duration);
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let index = 0; index < bufferSize; index += 1) {
+              const progress = index / bufferSize;
+              const envelope = Math.pow(Math.sin(Math.PI * progress), 0.48);
+              const grain = 0.72 + 0.28 * Math.sin(index * 0.19);
+              data[index] = (Math.random() * 2 - 1) * envelope * grain;
+            }
+
+            const paperNoise = this.ctx.createBufferSource();
+            const paperFilter = this.ctx.createBiquadFilter();
+            const paperGain = this.ctx.createGain();
+            paperNoise.buffer = buffer;
+            paperFilter.type = "highpass";
+            paperFilter.frequency.setValueAtTime(
+              profile.frequency + (Math.random() * 360 - 180),
+              now,
+            );
+            paperFilter.Q.setValueAtTime(0.7, now);
+            paperGain.gain.setValueAtTime(0.001, now);
+            paperGain.gain.linearRampToValueAtTime(profile.gain, now + 0.012);
+            paperGain.gain.linearRampToValueAtTime(0.001, now + profile.duration);
+            paperNoise.connect(paperFilter);
+            paperFilter.connect(paperGain);
+            paperGain.connect(this.ctx.destination);
+            paperNoise.start(now);
+
+            // 낮은 대역을 아주 작게 섞어, 얇은 노이즈가 아니라 종이를 긁는 질감을 만든다.
+            const fiberNoise = this.ctx.createBufferSource();
+            const fiberFilter = this.ctx.createBiquadFilter();
+            const fiberGain = this.ctx.createGain();
+            fiberNoise.buffer = buffer;
+            fiberFilter.type = "bandpass";
+            fiberFilter.frequency.setValueAtTime(
+              980 + (Math.random() * 220 - 110),
+              now,
+            );
+            fiberFilter.Q.setValueAtTime(0.85, now);
+            fiberGain.gain.setValueAtTime(0.001, now);
+            fiberGain.gain.linearRampToValueAtTime(profile.gain * 0.22, now + 0.018);
+            fiberGain.gain.linearRampToValueAtTime(0.001, now + profile.duration * 0.92);
+            fiberNoise.connect(fiberFilter);
+            fiberFilter.connect(fiberGain);
+            fiberGain.connect(this.ctx.destination);
+            fiberNoise.start(now);
+          } catch (e) {}
+        }
       }
 
       const sound = new TypewriterAudio();
+
+      // 자동 타이핑이 먼저 오디오 컨텍스트를 만들었어도,
+      // 사용자의 첫 클릭/키 입력에서 브라우저 자동재생 잠금을 해제한다.
+      function unlockAudio() {
+        sound.init();
+      }
+      document.addEventListener("pointerdown", unlockAudio, {
+        capture: true,
+        passive: true,
+      });
+      document.addEventListener("keydown", unlockAudio, true);
 
       /* =========================================================================
    2. 한글 두벌식 자모 조합 오토마타
@@ -1313,8 +1594,12 @@
       const paperSheet = document.getElementById("paperSheet");
       const paperViewport = document.getElementById("paperViewport");
       const typeGuide = document.getElementById("typeGuide");
+      const featherGuide = document.getElementById("featherGuide");
       const typeImpactLayer = document.getElementById("typeImpactLayer");
       const impactToggle = document.getElementById("impactToggle");
+      const writingModeSelect = document.getElementById("writingModeSelect");
+      let writingMode = "typewriter";
+      const isFeatherMode = () => writingMode === "feather";
       const charCountEl = document.getElementById("charCount");
       const lineCountEl = document.getElementById("lineCount");
       const reducedMotionQuery = window.matchMedia(
@@ -1327,6 +1612,14 @@
         typeGuide.classList.remove("strike");
         void typeGuide.offsetWidth;
         typeGuide.classList.add("strike");
+      }
+
+      // 깃털펜촉이 입력 순간에 살짝 눌렸다 돌아오는 효과.
+      function triggerFeatherStroke() {
+        if (reducedMotionQuery.matches || !isFeatherMode()) return;
+        featherGuide.classList.remove("stroke");
+        void featherGuide.offsetWidth;
+        featherGuide.classList.add("stroke");
       }
 
       // 입력 위치에서 작게 퍼지는 잉크 임팩트. 모션 감소 설정에서는 생성하지 않는다.
@@ -1418,6 +1711,7 @@
             "--lamp-x",
             `${clampedX}px`,
           );
+          // SVG 내부의 펜촉 끝이 --lamp-x(입력 위치)에 오도록 CSS transform에서 보정한다.
 
           // 현재 줄이 항상 타자기 인쇄선(하단 T자 바로 위)에 오도록 종이를 민다
           const anchorOffsetTop = cursorAnchor.offsetTop;
@@ -1431,6 +1725,13 @@
       }
 
       const fontSelect = document.getElementById("fontSelect");
+      writingModeSelect.addEventListener("change", () => {
+        writingMode = writingModeSelect.value;
+        desk.classList.toggle("feather-mode", isFeatherMode());
+        clearTypeImpacts();
+        updateScreen();
+        desk.focus();
+      });
       fontSelect.addEventListener("change", () => {
         paperSheet.style.fontFamily = `"${fontSelect.value}", serif`;
         updateScreen();
@@ -1442,8 +1743,13 @@
       // 키 하나 처리. 자모, 문장부호, 'BACK', ' ', 'Enter'
       function handleKey(k) {
         if (k === "BACK") {
-          sound.playKeyClick(false);
-          triggerStrike();
+          if (isFeatherMode()) {
+            sound.playFeatherStroke("backspace");
+            triggerFeatherStroke();
+          } else {
+            sound.playKeyClick(false);
+            triggerStrike();
+          }
           if (!automata.backspace()) {
             committedStr = committedStr.slice(0, -1);
           }
@@ -1452,23 +1758,38 @@
         }
 
         if (k === " ") {
-          sound.playKeyClick(true);
-          triggerStrike();
+          if (isFeatherMode()) {
+            sound.playFeatherStroke("space");
+            triggerFeatherStroke();
+          } else {
+            sound.playKeyClick(true);
+            triggerStrike();
+          }
           committedStr += automata.flush() + " ";
           updateScreen();
           return;
         }
 
         if (k === "Enter") {
-          sound.playReturnBell();
-          triggerStrike();
+          if (isFeatherMode()) {
+            sound.playFeatherStroke("return");
+            triggerFeatherStroke();
+          } else {
+            sound.playReturnBell();
+            triggerStrike();
+          }
           committedStr += automata.flush() + "\n";
           updateScreen();
           return;
         }
 
-        sound.playKeyClick(false);
-        triggerStrike();
+        if (isFeatherMode()) {
+          sound.playFeatherStroke("key");
+          triggerFeatherStroke();
+        } else {
+          sound.playKeyClick(false);
+          triggerStrike();
+        }
 
         const res = automata.inputJamo(k);
         if (res.committed) {
